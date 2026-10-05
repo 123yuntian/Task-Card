@@ -1,0 +1,126 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: white;
+    margin-bottom: 30px;
+    font-size: 32px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+#task-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.task-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.task-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.task-card.completed {
+    background: #e8f5e9;
+    border: 2px solid #4caf50;
+}
+
+.task-card .goal {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.task-card .section {
+    margin-bottom: 10px;
+}
+
+.task-card .section-label {
+    font-weight: bold;
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.task-card .section-content {
+    color: #555;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.task-card .time {
+    margin-top: 15px;
+    padding: 8px;
+    background: #f5f5f5;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #666;
+}
+
+.task-card .buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.task-card button {
+    flex: 1;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.task-card .btn-accept {
+    background: #2196f3;
+    color: white;
+}
+
+.task-card .btn-accept:hover:not(:disabled) {
+    background: #1976d2;
+}
+
+.task-card .btn-complete {
+    background: #4caf50;
+    color: white;
+}
+
+.task-card .btn-complete:hover:not(:disabled) {
+    background: #388e3c;
+}
+
+.task-card button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    color: #666;
+}
+
+.task-card .countdown {
+    background: #ff9800;
+    color: white;
+    font-size: 16px;
+}
