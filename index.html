@@ -8,7 +8,28 @@
 </head>
 <body>
     <h1>我的任务卡</h1>
+
+    <!-- 顶部工具栏：数据导出 + 快捷键提示 -->
+    <div id="toolbar">
+        <button class="btn-export" data-action="export">导出数据</button>
+        <span class="shortcut-hint">快捷键：鼠标悬停选中卡片后，A 接取 / C 完成 / D 延时</span>
+    </div>
+
+    <!-- 主看板：available / accepted / done 任务 -->
     <div id="task-container"></div>
-    <script src="script.js"></script>
+
+    <!-- 失败任务栏：failed / shelved 任务 -->
+    <section id="failed-section">
+        <h2>失败任务栏</h2>
+        <div id="failed-list"></div>
+    </section>
+
+    <!-- 模态框挂载点（由 render.js 动态填充） -->
+    <div id="modal-root"></div>
+
+    <!-- 轻提示 toast -->
+    <div id="toast"></div>
+
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
