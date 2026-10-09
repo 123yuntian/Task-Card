@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 只是一个想法 / 暂时说不清
+    url: https://github.com/123yuntian/Task-Card/issues/new?template=inbox.md
+    about: 用「想法收件箱」模板，一行标题就能记下，不用写细节
