@@ -374,7 +374,12 @@ export function exportData() {
     return JSON.stringify(
         {
             version: 2,
-            exportedAt: new Date().toISOString(),
+                        exportedAt: (() => {
+                const d = new Date();
+                const pad = n => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+                       `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            })(),
             tasks: state.tasks
         },
         null,
