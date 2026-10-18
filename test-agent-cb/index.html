@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 测试页 — 实时时钟</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+  }
+  body {
+    background: #111318;
+    color: #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  #clock {
+    font-size: 64px;
+    font-weight: normal;
+    letter-spacing: 2px;
+    font-variant-numeric: tabular-nums; /* 数字等宽，秒跳动时不会左右晃 */
+  }
+  .btn-row {
+    display: flex;
+    gap: 16px;
+  }
+  button {
+    padding: 10px 28px;
+    font-size: 16px;
+    border: 1px solid #555;
+    border-radius: 6px;
+    background: #1e222b;
+    color: #e8e8e8;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #2a2f3a;
+  }
+</style>
+</head>
+<body>
+
+<h1 id="clock">--:--:--</h1>
+
+<div class="btn-row">
+  <button id="btn-color">换色</button>
+  <button id="btn-bold">加粗</button>
+  <button id="btn-reset">重置</button>
+</div>
+
+<script>
+  var clockEl = document.getElementById('clock');
+  var btnColor = document.getElementById('btn-color');
+  var btnBold = document.getElementById('btn-bold');
+  var btnReset = document.getElementById('btn-reset');
+
+  // 每秒刷新的引擎：setInterval 每 1000ms 调一次 tick
+  function tick() {
+    var now = new Date();
+    var h = String(now.getHours()).padStart(2, '0');
+    var m = String(now.getMinutes()).padStart(2, '0');
+    var s = String(now.getSeconds()).padStart(2, '0');
+    clockEl.textContent = h + ':' + m + ':' + s;
+  }
+  tick(); // 先立即显示一次，避免首秒出现 "--:--:--"
+  setInterval(tick, 1000);
+
+  // 换色：在几个深色背景下可读的颜色间循环
+  var colors = ['#e8e8e8', '#7ec8ff', '#ffd479', '#8f8', '#ff8f8f'];
+  var colorIdx = 0;
+  btnColor.addEventListener('click', function () {
+    colorIdx = (colorIdx + 1) % colors.length;
+    clockEl.style.color = colors[colorIdx];
+  });
+
+  // 加粗：在 normal / bold 之间切换
+  btnBold.addEventListener('click', function () {
+    clockEl.style.fontWeight =
+      clockEl.style.fontWeight === 'bold' ? 'normal' : 'bold';
+  });
+
+  // 重置：恢复默认颜色 + 取消加粗
+  btnReset.addEventListener('click', function () {
+    colorIdx = 0;
+    clockEl.style.color = '';
+    clockEl.style.fontWeight = '';
+  });
+</script>
+
+</body>
+</html>
