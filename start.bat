@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 set PORT=8317
 set PY="C:\Users\10561\AppData\Local\Programs\Python\Python312\python.exe"
-set URL=http://localhost:%PORT%/index.html
+set URL=http://127.0.0.1:%PORT%/index.html
 
 rem --- check if the port is already taken ---
 netstat -ano | findstr /R /C:":%PORT% .*LISTENING" >nul
@@ -26,7 +26,7 @@ timeout /t 2 /nobreak >nul
 start "" "%URL%"
 
 echo.
-echo [start.bat] Server started on http://localhost:%PORT%
+echo [start.bat] Server started on http://127.0.0.1:%PORT%
 echo [start.bat] Close the "TaskCard server on %PORT%" window to stop it.
 echo.
-pause
+timeout /t 3 >nul
