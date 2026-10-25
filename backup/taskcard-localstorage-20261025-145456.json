@@ -1,0 +1,64 @@
+{
+  "exportedAt": "Sun Oct 25 2026 14:54:56 GMT+0800 (中国标准时间)",
+  "origin": "http://127.0.0.1:8317",
+  "taskCardData": {
+    "version": 2,
+    "tasks": [
+      {
+        "id": "t1",
+        "goal": "学习 JavaScript 基础",
+        "suggestion": "每天学习 30 分钟，结合实际项目练习",
+        "measures": "阅读 MDN 文档，完成 5 个练习题，写一个小应用",
+        "knowledge": "变量、函数、数组、对象、DOM 操作",
+        "suggestedTime": 30,
+        "priority": "high",
+        "blockedBy": [],
+        "status": "available",
+        "deadline": null,
+        "shelveReason": "",
+        "createdAt": 1792849646454,
+        "acceptedAt": null,
+        "completedAt": null,
+        "failedAt": null
+      },
+      {
+        "id": "t2",
+        "goal": "完成 CSS 布局练习",
+        "suggestion": "从简单到复杂，逐步掌握各种布局方式",
+        "measures": "练习 Flexbox 和 Grid 布局，实现 3 个响应式页面",
+        "knowledge": "Flexbox、Grid、响应式设计、媒体查询",
+        "suggestedTime": 45,
+        "priority": "medium",
+        "blockedBy": [],
+        "status": "available",
+        "deadline": null,
+        "shelveReason": "",
+        "createdAt": 1792849646454,
+        "acceptedAt": null,
+        "completedAt": null,
+        "failedAt": null
+      },
+      {
+        "id": "t3",
+        "goal": "阅读技术文档",
+        "suggestion": "选择一个感兴趣的技术栈，深入阅读官方文档",
+        "measures": "每天阅读 20 页，做笔记，总结核心概念",
+        "knowledge": "文档阅读方法、技术选型、架构设计",
+        "suggestedTime": 60,
+        "priority": "low",
+        "blockedBy": [
+          "t1"
+        ],
+        "status": "available",
+        "deadline": null,
+        "shelveReason": "",
+        "createdAt": 1792849646454,
+        "acceptedAt": null,
+        "completedAt": null,
+        "failedAt": null
+      }
+    ],
+    "lastResetDate": "2026-10-25"
+  },
+  "taskStates": null
+}
