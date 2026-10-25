@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "date": "1970-01-01",
+  "timezone": "Asia/Shanghai",
+  "_readme": "date 是占位符，测试运行时会覆盖为当天（Asia/Shanghai）；真实发布样例见 dispatch-data/import",
+  "tasks": [
+    {
+      "id": "stage5-8",
+      "dispatchKey": "tc-refactor-stage5-8",
+      "project": "Task Card",
+      "mode": "feature",
+      "title": "派活重构 · 场3（阶段5–8）：固定工作台、Task Card 接入、同步可靠性、AI 验收",
+      "minutes": 150,
+      "why": "让派活任务在 /today.html 与 Task Card 双入口可见、可操作、可靠同步",
+      "steps": [
+        "today.html 固定工作台与「今日尚未发布」空态",
+        "Task Card 工具栏入口 + 独立容器（不进 render 重建区）",
+        "IndexedDB 缓存/outbox + SSE 变更通知",
+        "AI 验收意见人工粘贴 → pending → 用户确认"
+      ],
+      "prompt": "按五节方案第 2/3/5 节与四场提示词第 3 场实现阶段 5–8，逐阶段给出文件行号与实测结果。",
+      "handMade": true,
+      "checkin": "",
+      "acceptance": "双入口状态一致；停服后操作变待同步、恢复只补交一次；两标签冲突提示且草稿不丢；SSE 不清输入中的草稿；旧看板与倒计时不受影响。",
+      "contentRevision": 1,
+      "codeEvidence": []
+    },
+    {
+      "id": "stage9-10",
+      "dispatchKey": "tc-refactor-stage9-10",
+      "project": "Task Card",
+      "mode": "feature",
+      "title": "派活重构 · 场4（阶段9–10）：发布命令、综合验收与回滚演练",
+      "minutes": 120,
+      "why": "收尾：本地发布 CLI、全量验收清单实测、回滚演练与治理文档更新",
+      "steps": [
+        "本地发布命令入口（复用阶段4校验/生成/原子切换）",
+        "验收清单逐项实测（怎么操作→期望→实际）",
+        "回滚演练（用 backup 导出恢复）",
+        "治理文件同步（AGENTS/MAP/NOW/RUNBOOK/DECISIONS/CONVENTIONS）"
+      ],
+      "prompt": "按五节方案与四场提示词第 4 场执行阶段 9–10；07:30 自动化未获单独授权前一步不碰。",
+      "handMade": true,
+      "checkin": "",
+      "acceptance": "真实任务命令行发布后 /today.html 可见；发布失败旧内容保留；回滚可恢复原状态；未授权不碰定时任务；不代 commit/push/部署。",
+      "contentRevision": 1,
+      "codeEvidence": []
+    }
+  ]
+}

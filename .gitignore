@@ -1,5 +1,11 @@
 # 派活运行数据：服务端生成（manifest、版本目录、执行/反馈快照、原子替换临时文件），不入公开仓库
 dispatch-data/
 
+# 运行数据的历次归档（本地留证用）
+dispatch-data.history/
+
 # 运行时临时文件
 *.tmp
+
+# 测试专用临时目录
+server/test/.tmp/

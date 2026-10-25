@@ -18,6 +18,13 @@ const LEGACY_KEY = 'taskStates';
 /** 当前数据结构版本号。未来变更数据结构时必须 +1 并在 migrate() 中补充分支 */
 export const SCHEMA_VERSION = 2;
 
+/** T-3 只读锁：读到高于本程序支持的数据版本时置位，saveData 从此拒绝一切写入 */
+let higherVersionLocked = false;
+
+export function isSchemaLocked() {
+    return higherVersionLocked;
+}
+
 /**
  * 读取持久化数据。
  * @returns {{ version:number, tasks:Array, lastResetDate:string } | null}
@@ -33,6 +40,14 @@ export function loadData() {
 
         // 版本匹配则直接返回；否则尝试迁移
         if (parsed.version === SCHEMA_VERSION) return parsed;
+        // T-3 守卫：数据版本高于本程序（典型场景：新版程序写过 v3 后程序被回滚）。
+        // 绝不能走 migrate→null→播种默认→persist 的老路，那条路会用默认数据覆盖真实数据
+        if (typeof parsed.version === 'number' && parsed.version > SCHEMA_VERSION) {
+            higherVersionLocked = true;
+            console.error('[storage] 检测到 v' + parsed.version + ' 数据（本程序仅支持 v' + SCHEMA_VERSION +
+                '），进入只读保护：数据照常显示，但拒绝一切写入。请换回新版程序，或用导出备份恢复。');
+            return parsed;
+        }
         return migrate(parsed);
     } catch (err) {
         // JSON 解析失败 / localStorage 被禁用等情况
@@ -47,6 +62,11 @@ export function loadData() {
  * @returns {boolean} 是否写入成功
  */
 export function saveData(data) {
+    if (higherVersionLocked) {
+        // 只读保护（T-3）：返回 false 让上层知道没保存，而不是静默丢弃或覆盖
+        console.error('[storage] 只读保护中（数据版本高于本程序），已拒绝写入。');
+        return false;
+    }
     try {
         const payload = { version: SCHEMA_VERSION, ...data };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
