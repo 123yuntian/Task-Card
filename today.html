@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日派活 · 固定工作台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>今日派活</h1>
+
+    <!-- 固定入口：日期由服务端按 Asia/Shanghai 决定，客户端从不猜"最近一天" -->
+    <div id="today-nav">
+        <a href="/index.html">← 回任务卡看板</a>
+    </div>
+
+    <!-- 工作台挂载点：独立容器，js/render.js 不会碰它 -->
+    <main id="app"></main>
+
+    <script type="module" src="js/dispatch/workbench.js"></script>
+    <script type="module">
+        // 独立小入口：只做挂载，业务全在 workbench.js（index.html 面板复用同一套代码）
+        import { mount } from './js/dispatch/workbench.js';
+        mount(document.getElementById('app'));
+    </script>
+</body>
+</html>

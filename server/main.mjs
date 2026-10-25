@@ -69,6 +69,19 @@ function sendJson(res, status, obj) {
   res.end(body);
 }
 
+// 说明页 HTML：响应头再锁一层（CSP sandbox 无任何放行项），即使被直接导航打开也不执行脚本
+function sendHtml(res, html) {
+  const body = Buffer.from(html, 'utf8');
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Length': body.length,
+    'Cache-Control': 'no-store',
+    'Content-Security-Policy': "sandbox; default-src 'none'; style-src 'unsafe-inline'",
+    'X-Content-Type-Options': 'nosniff',
+  });
+  res.end(body);
+}
+
 async function serveStatic(res, relPath) {
   try {
     const data = await readFile(path.join(ROOT, relPath));
@@ -149,8 +162,11 @@ async function handleApi(req, res, pathname) {
       if (!manifest || manifest.date !== today) {
         return sendJson(res, 200, { published: false, date: today, generationId: null, contentRevision: null, tasks: [] });
       }
+      // manifest 只存摘要；复制提示词、展示步骤和验证条件需要完整定义，按 dispatchKey 合并进来
+      const full = await publisher.currentDefinition();
+      const fullByKey = new Map((full?.tasks ?? []).map(t => [t.dispatchKey, t]));
       const tasks = manifest.tasks.map(t => ({
-        definition: t,
+        definition: { ...fullByKey.get(t.dispatchKey), ...t },
         execution: repository.snapshot(t.dispatchKey) ?? {
           version: 0, execution: 'available', acceptanceStatus: 'not_submitted', deadline: null,
         },
@@ -159,9 +175,26 @@ async function handleApi(req, res, pathname) {
         published: true,
         date: today,
         generationId: manifest.generationId,
+        publishedAt: manifest.publishedAt,
         contentRevision: Math.max(...tasks.map(t => t.definition.contentRevision ?? 1)),
         tasks,
       });
+    }
+    // 历史入口：只读。generationId 在 publisher 内过严格正则后才拼路径
+    if (pathname === '/api/generations') {
+      return sendJson(res, 200, { generations: await publisher.listGenerations() });
+    }
+    const gen = pathname.match(/^\/api\/generations\/([^/]+)(\/tasks\.html)?$/);
+    if (gen) {
+      const id = decodeURIComponent(gen[1]);
+      if (gen[2]) {
+        const html = await publisher.generationTasksHtml(id);
+        if (html === null) return sendJson(res, 404, { error: 'not_found', generationId: id });
+        return sendHtml(res, html);
+      }
+      const def = await publisher.generationDefinition(id);
+      if (!def) return sendJson(res, 404, { error: 'not_found', generationId: id });
+      return sendJson(res, 200, def);
     }
     return sendJson(res, 404, { error: 'api_not_implemented', path: pathname });
   }

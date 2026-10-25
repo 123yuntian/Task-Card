@@ -9,11 +9,16 @@
 <body>
     <h1>我的任务卡</h1>
 
-    <!-- 顶部工具栏：数据导出 + 快捷键提示 -->
+    <!-- 顶部工具栏：数据导出 + 快捷键提示 + 今日派活入口 -->
     <div id="toolbar">
         <button class="btn-export" data-action="export">导出数据</button>
+        <button type="button" id="btn-dispatch" class="btn-dispatch" aria-expanded="false" aria-controls="dispatch-panel">今日派活</button>
         <span class="shortcut-hint">快捷键：鼠标悬停选中卡片后，A 接取 / C 完成 / D 延时</span>
     </div>
+
+    <!-- 今日派活面板：挂在 body 直下的独立容器（绝不进 #task-container / #failed-list，
+         render.js 整块重建看板时面板 DOM 与输入草稿不受影响） -->
+    <section id="dispatch-panel" hidden></section>
 
     <!-- 主看板：available / accepted / done 任务 -->
     <div id="task-container"></div>
@@ -31,5 +36,10 @@
     <div id="toast"></div>
 
     <script type="module" src="js/app.js"></script>
+    <!-- 阶段6前半：只接线入口与挂载，数据与交互全部复用 today.html 同一套（js/dispatch/*） -->
+    <script type="module">
+        import { setupPanel } from './js/dispatch/workbench.js';
+        setupPanel(document.getElementById('btn-dispatch'), document.getElementById('dispatch-panel'));
+    </script>
 </body>
 </html>

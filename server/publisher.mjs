@@ -1,10 +1,13 @@
 // server/publisher.mjs —— 派活发布器（场2 阶段4）
 // 流程固定：校验 → 预览差异 → 完整生成版本化目录 → 原子切换 manifest 指针。
 // 任何一步失败保留上一版；manifest 永远只指向已完整写好的目录，读者看不到半套内容。
-import { mkdir, writeFile, rename, readFile, open } from 'node:fs/promises';
+import { mkdir, writeFile, rename, readFile, open, readdir } from 'node:fs/promises';
 import { createHash, randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { validateDispatchDefinition, DISPATCH_SCHEMA_VERSION, TIMEZONE } from './schema.mjs';
+
+// commit() 生成的版本目录名：gen-<日期>-<时间戳36进制>-<6位hex>
+const GENERATION_ID_RE = /^gen-\d{4}-\d{2}-\d{2}-[a-z0-9]+-[0-9a-f]{6}$/;
 
 function sortedReplacer(_k, v) {
   if (v && typeof v === 'object' && !Array.isArray(v)) {
@@ -29,6 +32,58 @@ export class Publisher {
   async current() {
     try {
       return JSON.parse(await readFile(this.manifestFile, 'utf8'));
+    } catch {
+      return null;
+    }
+  }
+
+  // 当前 manifest 指向的完整定义（含 prompt/steps/acceptance）；读不到返回 null
+  async currentDefinition() {
+    const manifest = await this.current();
+    return manifest ? this.#definitionOf(manifest) : null;
+  }
+
+  // 当前版本的无脚本说明页 HTML（交给 sandbox="" 的 iframe）；缺文件返回 null
+  async currentTasksHtml() {
+    const manifest = await this.current();
+    return manifest ? this.generationTasksHtml(manifest.generationId) : null;
+  }
+
+  // 历史入口：枚举 published/ 下每个已完整写好的版本目录，按日期、版本倒序。只读。
+  async listGenerations() {
+    const manifest = await this.current();
+    let names = [];
+    try {
+      names = await readdir(this.publishedDir);
+    } catch {
+      return [];
+    }
+    const items = [];
+    for (const name of names) {
+      if (!GENERATION_ID_RE.test(name)) continue;
+      const def = await this.#definitionOf({ generationId: name });
+      if (!def) continue; // 半套目录（没有 definition.json）不进列表
+      items.push({
+        generationId: name,
+        date: def.date,
+        taskCount: Array.isArray(def.tasks) ? def.tasks.length : 0,
+        current: manifest?.generationId === name,
+      });
+    }
+    items.sort((a, b) => (a.date === b.date ? (a.generationId < b.generationId ? 1 : -1) : (a.date < b.date ? 1 : -1)));
+    return items;
+  }
+
+  // generationId 来自 URL，必须先过严格正则再拼路径，杜绝穿越
+  async generationDefinition(generationId) {
+    if (!GENERATION_ID_RE.test(generationId)) return null;
+    return this.#definitionOf({ generationId });
+  }
+
+  async generationTasksHtml(generationId) {
+    if (!GENERATION_ID_RE.test(generationId)) return null;
+    try {
+      return await readFile(path.join(this.publishedDir, generationId, 'tasks.html'), 'utf8');
     } catch {
       return null;
     }
