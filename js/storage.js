@@ -16,7 +16,7 @@ const STORAGE_KEY = 'taskCardData';
 const LEGACY_KEY = 'taskStates';
 
 /** 当前数据结构版本号。未来变更数据结构时必须 +1 并在 migrate() 中补充分支 */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** T-3 只读锁：读到高于本程序支持的数据版本时置位，saveData 从此拒绝一切写入 */
 let higherVersionLocked = false;
@@ -92,6 +92,22 @@ function migrate(oldData) {
             version: SCHEMA_VERSION,
             tasks: oldData.tasks,
             lastResetDate: oldData.lastResetDate || null
+        };
+    }
+    // v2 -> v3（场3阶段6，D-009）：任务新增四个派活字段。已有字段一律不动，只补缺省值；
+    // 合法 v2 数据绝不走下面的「无法识别」分支，绝不返回 null、绝不丢 tasks
+    if (oldData && oldData.version === 2 && Array.isArray(oldData.tasks)) {
+        console.info('[storage] 检测到 v2 数据，迁移到 v3');
+        return {
+            version: SCHEMA_VERSION,
+            tasks: oldData.tasks.map(t => ({
+                ...t,
+                dispatchKey: t.dispatchKey || null,
+                sourceKey: t.sourceKey || null,
+                dispatchContentRevision: t.dispatchContentRevision || null,
+                sourceTitle: t.sourceTitle || null
+            })),
+            lastResetDate: oldData.lastResetDate
         };
     }
     // 无法识别的结构：放弃迁移，让调用方用默认数据重建

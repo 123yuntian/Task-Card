@@ -16,7 +16,7 @@
  *   remaining = deadline - Date.now()
  */
 
-import { loadData, saveData, loadLegacyStates, clearLegacy } from './storage.js';
+import { loadData, saveData, loadLegacyStates, clearLegacy, SCHEMA_VERSION } from './storage.js';
 
 /* ================= 事件总线（极简发布/订阅） ================= */
 
@@ -110,7 +110,12 @@ function normalizeTask(t) {
         createdAt: t.createdAt || Date.now(),
         acceptedAt: t.acceptedAt || null,
         completedAt: t.completedAt || null,
-        failedAt: t.failedAt || null
+        failedAt: t.failedAt || null,
+        // 派活接入字段（场3阶段6）：非派活任务为 null。不能是 undefined，JSON.stringify 会把 undefined 键丢掉
+        dispatchKey: t.dispatchKey || null, // 跨日稳定逻辑键
+        sourceKey: t.sourceKey || null,
+        dispatchContentRevision: t.dispatchContentRevision || null,
+        sourceTitle: t.sourceTitle || null
     };
 }
 
@@ -373,7 +378,7 @@ export function dailyResetIfNeeded() {
 export function exportData() {
     return JSON.stringify(
         {
-            version: 2,
+            version: SCHEMA_VERSION,
                         exportedAt: (() => {
                 const d = new Date();
                 const pad = n => String(n).padStart(2, '0');
