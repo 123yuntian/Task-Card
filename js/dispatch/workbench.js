@@ -12,7 +12,9 @@
 
 import { fetchToday, fetchGenerations, postOperation } from './api.js';
 import { init, upsertDispatchTask, applyTaskCommand } from '../store.js';
-import { enqueue } from './client-store.js';
+import { enqueue, saveSnapshot, listQueue, dequeue } from './client-store.js';
+
+let flushing = false;
 
 const EXEC_LABEL = { available: '待接取', accepted: '进行中', done: '已完成', failed: '已失败', shelved: '已搁置' };
 const ACCEPT_LABEL = {
@@ -123,7 +125,10 @@ export function mount(container, { isActive = () => true } = {}) {
     const data = await fetchToday();
     syncing = false;
     connected = data.ok;
-    if (data.ok) { snapshot = data; lastSyncAt = Date.now(); renderAll(); }
+    if (data.ok) {
+      snapshot = data; lastSyncAt = Date.now(); saveSnapshot(data.tasks, { date: data.date, generationId: data.generationId }).catch(err => console.error('保存快照失败', err)); renderAll();
+      if (!flushing) flushQueue();
+    }
     updateStatus(); // 成败都刷新状态行；断连时保留上次视图，只改这一行
     if (rerun) { rerun = false; refresh(); }
   }
@@ -236,6 +241,38 @@ export function mount(container, { isActive = () => true } = {}) {
       h('div', { class: 'wb-fb-form' }, difficulty, actual, btn), ta,
     );
     return { el, ta, difficulty, actual, list, reviews };
+  }
+
+  async function flushQueue() {
+    if (flushing) return;
+    flushing = true;
+    let done = 0;
+    let dropped = 0;
+    try {
+      const items = await listQueue();
+      for (const item of items) {
+        const r = await postOperation(item.key, {
+          operationId: item.operationId,
+          expectedVersion: item.expectedVersion,
+          type: item.type,
+          payload: item.payload,
+        });
+        if (r.ok) {
+          await dequeue(item.operationId);
+          done++;
+        } else if (r.error === 'network') {
+          break;
+        } else {
+          await dequeue(item.operationId);
+          dropped++;
+        }
+      }
+      if (done || dropped) toast(`已补交 ${done} 条待同步操作${dropped ? `，丢弃 ${dropped} 条（已过期）` : ''}`);
+    } catch (err) {
+      console.error('补交队列失败', err);
+    } finally {
+      flushing = false;
+    }
   }
 
   async function send(key, type, payload = {}) {
