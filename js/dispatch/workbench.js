@@ -12,7 +12,7 @@
 
 import { fetchToday, fetchGenerations, postOperation } from './api.js';
 import { init, upsertDispatchTask, applyTaskCommand } from '../store.js';
-import { enqueue, saveSnapshot, listQueue, dequeue } from './client-store.js';
+import { enqueue, saveSnapshot, loadSnapshot, listQueue, dequeue } from './client-store.js';
 
 let flushing = false;
 
@@ -103,6 +103,7 @@ export function mount(container, { isActive = () => true } = {}) {
   let syncing = false;
   let rerun = false;
   let lastSyncAt = null;
+  let offlineSnapshotAt = null;
   let docGeneration = null;
   let docFrame = null;
 
@@ -111,8 +112,11 @@ export function mount(container, { isActive = () => true } = {}) {
     const parts = [];
     if (syncing) parts.push('同步中…');
     else if (connected) parts.push(`已连接 · 上次同步 ${lastSyncAt ? fmtClock(lastSyncAt) : '—'}`);
-    else parts.push('未连接本地服务（GitHub Pages 纯静态模式无派活数据）');
-    if (snapshot?.published) {
+    else if (offlineSnapshotAt != null) {
+      const d = new Date(offlineSnapshotAt);
+      parts.push(`离线 · 显示的是 ${pad(d.getHours())}:${pad(d.getMinutes())} 的快照`);
+    } else parts.push('未连接本地服务（GitHub Pages 纯静态模式无派活数据）');
+    if (snapshot?.published && offlineSnapshotAt == null) {
       parts.push(`发布日期 ${snapshot.date}`, `内容修订 r${snapshot.contentRevision}`,
         `版本 ${snapshot.generationId}`, `发布于 ${fmtDateTime(snapshot.publishedAt ?? 0)}`);
     }
@@ -123,12 +127,24 @@ export function mount(container, { isActive = () => true } = {}) {
     if (syncing) { rerun = true; return; }
     syncing = true; updateStatus();
     const data = await fetchToday();
-    syncing = false;
     connected = data.ok;
     if (data.ok) {
+      offlineSnapshotAt = null;
       snapshot = data; lastSyncAt = Date.now(); saveSnapshot(data.tasks, { date: data.date, generationId: data.generationId }).catch(err => console.error('保存快照失败', err)); renderAll();
       if (!flushing) flushQueue();
+    } else {
+      try {
+        const snap = await loadSnapshot();
+        if (snap && !snapshot && Array.isArray(snap.tasks)) {
+          snapshot = { ok: true, published: true, date: snap.meta?.date ?? '', generationId: snap.meta?.generationId ?? '', tasks: snap.tasks };
+          offlineSnapshotAt = snap.savedAt;
+          renderAll();
+        }
+      } catch (err) {
+        console.error('读取离线快照失败', err);
+      }
     }
+    syncing = false;
     updateStatus(); // 成败都刷新状态行；断连时保留上次视图，只改这一行
     if (rerun) { rerun = false; refresh(); }
   }
