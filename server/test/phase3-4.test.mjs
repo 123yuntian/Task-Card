@@ -253,7 +253,8 @@ await test('pub：合法修订发布 → 新 generation，旧目录保留可追�
 
 // ---------- T-3 守卫（localStorage 垫片，不碰浏览器） ----------
 await test('T-3：读到更高版本 → 数据返回展示、上写锁、saveData 拒绝', async () => {
-  const store = new Map([['taskCardData', JSON.stringify({ version: 3, tasks: [{ id: 'x' }], lastResetDate: '2026-10-25' })]]);
+  const cur = (await import('../../js/storage.js?sv')).SCHEMA_VERSION;
+  const store = new Map([['taskCardData', JSON.stringify({ version: cur + 1, tasks: [{ id: 'x' }], lastResetDate: '2026-10-25' })]]);
   globalThis.localStorage = {
     getItem: (k) => (store.has(k) ? store.get(k) : null),
     setItem: (k, v) => store.set(k, String(v)),
@@ -261,10 +262,10 @@ await test('T-3：读到更高版本 → 数据返回展示、上写锁、saveDa
   };
   const mod = await import('../../js/storage.js?lock');
   const data = mod.loadData();
-  assert.equal(data.version, 3, '数据应原样返回供只读展示');
+  assert.equal(data.version, cur + 1, '数据应原样返回供只读展示');
   assert.equal(mod.isSchemaLocked(), true);
   assert.equal(mod.saveData({ tasks: [], lastResetDate: 'x' }), false, '锁定期必须拒写');
-  assert.equal(store.get('taskCardData').includes('"version":3'), true, '磁盘数据不得被覆盖');
+  assert.equal(store.get('taskCardData').includes(`"version":${cur + 1}`), true, '磁盘数据不得被覆盖');
   delete globalThis.localStorage;
 });
 await test('T-3：v2 正常读写、不锁', async () => {
@@ -275,7 +276,7 @@ await test('T-3：v2 正常读写、不锁', async () => {
     removeItem: (k) => store2.delete(k),
   };
   const mod = await import('../../js/storage.js?v2');
-  assert.equal(mod.loadData().version, 2);
+  assert.equal(mod.loadData().version, mod.SCHEMA_VERSION);
   assert.equal(mod.isSchemaLocked(), false);
   assert.equal(mod.saveData({ tasks: [], lastResetDate: null }), true);
   delete globalThis.localStorage;
