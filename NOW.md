@@ -11,7 +11,7 @@
 
 ## 今天日期
 
-2026-10-26（由管家更新；「今天投入的时间」仍由用户填）
+2026-10-27（由管家更新；「今天投入的时间」仍由用户填）
 
 ---
 
@@ -46,10 +46,11 @@
 | 10/24 六 | **第 1 场** | 只读核对，输出五节 + 偏差报告 | 25–30 min | ✅ **04:12 完成并验收通过**（scout 27 次核对 → reviewer 首轮 1 阻塞+7 缺口 → 修补 8 条 → 复核通过；管家独立核代码，无谎报） |
 | 10/25 日 | **场 2** | 阶段 1–4：备份闸门 → Node 骨架 → 原子持久化 → 发布器 | — | ✅ **完整完成**（`7b89eb1` 15:03 上半 / `71185cd` 16:57 下半；13 文件 +1326/−19；单测 27 + 集成 24；断线一次后恢复） |
 | 10/25 夜 | **场 3 上半** | 阶段 5 工作台（`today.html`）+ 阶段 6 前半（工具栏入口，只做 UI） | 90–120 min | ✅ **完成**（`d1bba7e` 22:17，7 文件 +899/−3；`state.json` 有 23:21 的 accept+fail 记录＝他真双击测过） |
-| 10/26 一 | **场 3 下半** | 块 A：阶段 6 后半（**bump v2→v3，动手前必须停下问用户**）；块 B（选做）：阶段 7 上半（IndexedDB + 待同步） | 两块各 30 min | ← 今天（熄灯日硬边界 23:20） |
-| 10/27 二 | 阶段 7 下半 + 阶段 8 收口 | SSE + 多标签冲突 + 单 timer 断言；旧修订标注补齐 | 拆 2 段 | 明天 |
-| 10/28 三 | 场 4 | 阶段 9 发布命令（第一步）+ 阶段 10 综合验收 + 回滚演练 | 拆 2 段 | 顺延一天 |
-| 10/29 四 | 缓冲 | 补测 / 遗留 / R-006（按重构后新代码重 Grep 行号） | | |
+| 10/26 一 | **场 3 下半（部分）** | 阶段 6 后半 a + e：字段白名单四字段、v2→v3 迁移 | — | ✅ **a+e 完成并推送**（`db566ac` 10-27 00:48，本人 commit+push，远端 SHA 已核一致） |
+| **10/27 二** | **场 3 下半补完** | 阶段 6 后半 **b/c/d**：稳定键 upsert、统一命令入口、保存失败传播（块 B 选做 = 阶段 7 上半） | 40 + 40 min | ← 今天（熄灯日硬边界 23:20） |
+| 10/28 三 | 阶段 7 下半 + 阶段 8 收口 | SSE + 多标签冲突 + 单 timer 断言；旧修订标注补齐 | 拆 2 段 | 顺延一天 |
+| 10/29 四 | 场 4 | 阶段 9 发布命令（第一步）+ 阶段 10 综合验收 + 回滚演练 | 拆 2 段 | 顺延一天 |
+| 10/30 五 | 缓冲 | 补测 / 遗留 / R-006（按重构后新代码重 Grep 行号） | | |
 | 之后 | v2.0 | 两视图骨架；R-003 多标签覆盖、R-008 数据导入 | | 顺延不作废 |
 
 > 10/25 白天用户要求"三场全跑"（三个 commit），实际执行结果：**场 2 完整完成（两笔提交）**，
@@ -66,43 +67,58 @@
 - 完整方案：`C:\Users\10561\.workbuddy\plans\cosmic-pulse-tesla-2D6gWOQN.md`
 - 四场提示词：`C:\Users\10561\.workbuddy\plans\dispatch-refactor-4-prompts.md`
 - 多 Agent 审查：`C:\Users\10561\.workbuddy\plans\dispatch-review-agents.md`
-- 今日派活页（**今天用这份**）：`D:\ProgramData\.workbuddy\2026-09-24-20-35-19\projects\vibe-coding\29-today-1026.html`
-  （`28-today-1025-night.html` = 场 3 上半，已执行完；`27-today-1025.html` = 白天"四场全跑版"，已作废）
+- 今日派活页（**今天用这份**）：`D:\ProgramData\.workbuddy\2026-09-24-20-35-19\projects\vibe-coding\30-today-1027.html`
+  （`29-today-1026.html` = 场 3 下半前半（a+e），已执行完；`28-today-1025-night.html` = 场 3 上半；`27-today-1025.html` = 已作废的"四场全跑版"）
 
 ---
 
 ## 下一步（只写一个动作）
 
 ```
-【10/26 场 3 下半 · 块 A = 阶段 6 后半（含 v2→v3），块 B（选做）= 阶段 7 上半】
-场 3 上半已交付（`d1bba7e`：today.html + js/dispatch/* + index.html 工具栏 + style.css，7 文件 +899/−3）。不重做、不重新设计。
+【10/27 场 3 下半补完 · 块 A = 阶段 6 后半 b/c/d，块 B（选做）= 阶段 7 上半】
+昨夜 `db566ac` 只落了 a（四字段白名单）和 e（v2→v3 迁移），b/c/d 三项经 grep 现场核实**一条都没做**。
 
-0. 热身（3 min）：图形界面 commit 掉 NOW.md（「同步 10/26 派活」），工作区必须干净，
-   否则 ZCode 开场 git status 自检会直接停机（10/25 白天已因此卡 20 分钟）。
-1. 回昨天那个 ZCode 会话。开场必须读 `server\PROGRESS.md` + `NOW.md` + `DECISIONS.md` D-009 + `git log -5`。
-2. **先在对话框发一句话**（D-009 承诺的"动手前必须停下问用户"）：
-   「版本决策：同意 bump v2→v3，按 P1 的 A 方案执行。」不同意就改成「先不 bump」。
-3. 粘派活页 p1（整段）。p1 第 0 步的铺底**已于 10/26 22:55 由管家做完**
-   （`gen-2026-10-26-mvpdjssg-ecece4`，两条任务 `tc-refactor-stage6b` / `tc-refactor-stage7a`，manifest.date=2026-10-26）——
-   agent 只需 `GET /api/today` 核对 `published:true` 即可，**不许重发**，否则内容修订号被顶上去，"重复导入不新增"那条不好判。
-4. 阶段 6 后半四项：白名单加 4 字段（dispatchKey / sourceKey / dispatchContentRevision / sourceTitle）、
-   按 dispatchKey 稳定键 upsert（不覆盖 status/deadline/时间戳）、accept/complete/delay/shelve 统一命令入口、
-   persist() 返回 saveData 布尔值并进 detail.saved。**bump 时 migrate() 必须补 v2→v3 分支，T-3 守卫不许弱化。**
-5. 自证三条：① /today.html 今天有内容 ② 接取 → 看板出现卡片 → F5 倒计时接着走 ③ 三列卡与上一场一模一样。
-   反向再验：面板里打一半字去点接取，回来字还在。
-6. 块 B（选做，21:30 前）：粘 p2 做阶段 7 上半（IndexedDB snapshot/pending + 待同步 + 幂等补交），
-   自证 = 停服务提交 → 显示待同步 → 刷新还在 → 启服务只补一次。
-7. 停下 → 交【待提交清单】+【存档点】→ 管家扫 → 用户 commit（第 4 笔）。
-8. 硬停点：熄灯日 **23:20 硬线**；只做完块 A 也算打卡。
+0. 开跑前 3 分钟：工作区只应有 `M NOW.md`（管家今天改的文档，**不影响 ZCode 自查，它会连这笔一起提交**），
+   业务代码文件必须干净。只需再确认 ZCode 选择器停在 `group/main`（别停在 GLM-5.3-Flash）。
+1. 双击 `start.bat` → `127.0.0.1:8317/today.html`，**今天应有两条任务**（块A / 块B，内容修订 r2）。
+   铺底已于 10/27 12:0x 由管家完成（`gen-2026-10-27-mvq654kf-c645da`，两条 `available` v0）——
+   agent 只需 `GET /api/today` 核对 `published:true`，**不许重发**。
+2. 粘派活页 p1（整段）。三项一根链条，缺一环就断：
+   **b** `upsertDispatchTask(def, exec)`，键 = dispatchKey，id = `'dp:' + dispatchKey`，只更内容字段、不碰 status/deadline/时间戳；
+   **c** `applyTaskCommand({type, dispatchKey, payload})` 统一 accept/complete/fail/delay/shelve，返回 `{ok, saved, taskId}`，
+       **禁止事件监听里二次写入**；
+   **d** `persist()` 返回 saveData 布尔 → `persistAndEmit` 带 `saved` → workbench 在 `saved===false` 时 toast 改「已同步服务端，但本地保存失败」。
+3. 硬约束：只改 `js/store.js` + `js/dispatch/workbench.js`（storage.js 只在 persist 传参处动）；
+   **禁改 `js/render.js`（mtime 必须仍是 2026-10-06 18:13）、`js/timer.js`、`server/`**。
+4. 自证六条：① /today.html 有两条内容 ② 点接取 → 看板长出卡片（**这条链路至今从未真跑过**）
+   ③ F5 倒计时接着走 ④ 三列卡与上一场一模一样 ⑤ 反馈框打一半字去点接取，字还在
+   ⑥ 反向：把 localStorage 改坏成非法 JSON 再点接取 → 必须显示「本地保存失败」而不是「成功」。
+5. 停下 → 交【待提交清单】+【存档点】→ 管家扫 → 用户图形界面 commit（第 5 笔）。
+6. 块 B（选做，21:30 前没开工就放弃）：粘 p2 做阶段 7 上半。**第 0 步不是写 IndexedDB，
+   而是把 `repository.mjs` 的 `canonicalOp` 里 `expectedVersion` 从幂等指纹中摘出去**（不摘就做不出"只补一次"），
+   改完 27 条单测必须全绿。
+7. 硬停点：熄灯日 **23:20 硬线**；只做完块 A 也算打卡。
 
-**明天（10/27）**：阶段 7 下半（SSE + 多标签冲突 + 单 timer 断言）+ 阶段 8 收口（旧修订标注）。
-**场 4 顺延到 10/28**，缓冲到 10/29。
+**10/27 现场核实（管家派活前 grep，不是听自述）**：
+· `SCHEMA_VERSION = 3`（storage.js:19）✓ / `normalizeTask` 四字段在 storage.js:105-108 ✓
+· `grep -c applyTaskCommand js/*.js` = 0 → c 未做；`grep -rn "saved" js/ server/` = 0 命中 → d 未做；
+  `grep -n dispatchKey js/store.js` = 0 → b 未做
+· `dispatch-data/state.json` 里唯一那条 accept+fail 的 key 是 `tc-refactor-stage9-10`（**测试夹具 sample.json 的键**），
+  不是派给他的两条任务 → **「接取 → 看板出现卡片」这条链路到 10/26 夜为止一次都没真跑过**，
+  10/26 记录的"他真双击测过"应更正为"测的是服务端 API 与浏览器迁移，不是两页面间的数据流"
+· 铺底时发现并已修正：同一件事顺延**不能改 dispatchKey**（我先改成 `stage6b-rest`，会让昨天执行记录断链，已改回 `tc-refactor-stage6b` 并把 `contentRevision` 升到 2）
+
+**10/28**：阶段 7 下半（SSE + 多标签冲突 + 单 timer 断言）+ 阶段 8 收口。
+**场 4 顺延到 10/29**，缓冲到 10/30。
 ```
 
 > **10/25 夜场复盘（10/26 13:20 更新）**：场 3 上半按期交付并已提交 —— `d1bba7e`（22:17）7 文件 +899/−3，
 > 新建 `today.html`（27 行）+ `js/dispatch/{workbench,api}.js`（439+76 行），`index.html` 只加 12 行（工具栏按钮 + body 直下的
 > `#dispatch-panel`），`js/render.js` 零改动、`js/timer.js` 零改动 —— 挂载位置与"不动定时器"两条红线都守住了。
-> 硬证据不止提交：`dispatch-data\state.json` 里有 23:21 的 `accept` + `fail` 两条操作记录，说明他真起服务点过。
+> 硬证据不止提交：`dispatch-data\state.json` 里有 23:21 的 `accept` + `fail` 两条操作记录。
+> **⚠️ 10/27 更正**：那两条记录的 key 是 `tc-refactor-stage9-10`，是**测试夹具 `server/test/fixtures/sample.json` 的键**，
+> 不是当天派的两条任务 → 只能证明"服务端 API 被真调过"，**不能证明"接取 → 看板出现卡片"这条链路跑过**。
+> 那条链路到 10/26 夜为止仍然是零次真跑，10/27 才首次验证。
 > **唯一没贴回的**是"三列卡一模一样"那条自证 → 今天顺手补，不追究、不加量。
 >
 > **10/26 13:20 现场核实（本次派活前新查）**：
@@ -159,14 +175,18 @@ R-006 / R-004 / R-005 / v2.0 全部顺延到四场之后，本文件不再保留
   `index.html`(+12) / `style.css`(+256) / `server/main.mjs`(+35) / `server/publisher.mjs`(+57)。
   **`js/render.js` 与 `js/timer.js` 零改动** → 两条红线（不整块重建容器、不新增定时循环）都守住。
   提交后 23:21 有 `dispatch-data\state.json` 的 accept + fail 记录 → 他真双击起服务点过，不是"agent 写完就提交"。
-- 最新提交：`d1bba7e`（10-25 22:17 场 3 上半）；上两笔 `0d15d95`（10-25 21:02 同步夜场派活）/ `71185cd`（10-25 16:57 场 2 下半）；
-  再上 `7b89eb1`（10-25 15:03 场 2 上半）；更早 `28c005a`（10-25 03:41「10.25」）。
+- **10/26 打卡判定：已打卡（三选三：产出 + 亲手 commit/push + 真机验证）。场 3 下半只完成 a+e。**
+  `db566ac`（**10-27 00:48**，本人 commit + push，`git ls-remote origin HEAD` 已核为同一 SHA）「派活重构场3下半：数据模型 v2→v3」。
+  agent 自行发现 `exportData` 硬编码 `version:2` 并改读 `SCHEMA_VERSION`（范围内必改、主动抓到）。
+  隔夜验证：Node 四路径（v2→v3 / v1 兼容 / v4→T-3 只读 / store 全流程）+ 浏览器迁移前后逐字段 diff + 导出 version:3。
+- 最新提交：`db566ac`（10-27 00:48 场 3 下半 a+e）；上一笔 `1f9fc5c`（10-26 22:59 Update NOW.md）；
+  再上 `d1bba7e`（10-25 22:17 场 3 上半）/ `0d15d95` / `71185cd`（场 2 下半）/ `7b89eb1`（场 2 上半）/ `28c005a`。
 - **10/24 打卡判定：已打卡（三选二）** —— 亲手导出 localStorage 备份 + 产物文件落盘。
 - **10/23 打卡判定：打卡成立（分级口径）+ 第 1 场内容顺延** —— 当晚产出全在工具链上（三个 ZCode 子代理 + Magpie 路由组），
   有文件有配置，但第 1 场零输出；原样顺延，不问责。
 - **10/22 打卡判定：已打卡（三选三）** —— `a1faa5c` 两行全改 + 亲手 commit + `d85d0ff` 提交 NOW/AGENTS。
-- 截至 10/26 13:20 工作区只有 `M NOW.md`（管家本轮改写：日期 / 四场表 / 下一步 / 现场核实 / 打卡判定，不含业务代码），
-  **待用户提交** —— 这是今天开工前 3 分钟热身要 commit 掉的那一笔。
+- 截至 10/27 12:0x 工作区只有 `M NOW.md`（管家本轮改写：日期 / 四场表 / 下一步 / 现场核实 / 打卡判定，不含业务代码），
+  **待用户提交** —— 这笔不用单独提，跟今天块 A 一起 commit 即可（工作区"脏"不影响 ZCode 自查，它只查代码文件）。
 - **业务代码自 10/25 15:12 起重新动起来了**：`js/app.js`（T-3 横幅）、`js/storage.js`（守卫）、
   `index.html`（工具栏）、新增 `js/dispatch/*` 与 `server/*`。此前"最后一行业务改动 = 2026-10-10 19:37"的记录作废。
 - 接手测试结论（管家 10-11 亲验）仍然有效：框架文件齐全，新 agent 只给路径即可答对三问。
