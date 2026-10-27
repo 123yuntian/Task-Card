@@ -93,6 +93,11 @@ await test('repo：同 operationId 同内容重放返回原结果，不涨版本
   assert.equal(r.replayed, true);
   assert.equal(r.version, 1);
 });
+await test('repo：同 operationId 同 type 同 payload、仅 expectedVersion 不同 → 仍按重放返回原结果', async () => {
+  const r = await repo.applyOperation('k-alpha', { ...acceptOp, expectedVersion: acceptOp.expectedVersion + 1 }, defA);
+  assert.equal(r.replayed, true, 'expectedVersion 不进幂等指纹，必须是重放');
+  assert.equal(r.version, 1, '不涨版本、原结果');
+});
 await test('repo：同 operationId 不同内容 → operation_id_reuse', () =>
   expectRepoError(repo.applyOperation('k-alpha', { ...acceptOp, payload: { x: 1 } }, defA), 'operation_id_reuse'));
 await test('repo：expectedVersion 不匹配 → version_conflict(带当前版本)', async () => {

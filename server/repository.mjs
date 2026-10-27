@@ -26,8 +26,9 @@ function sortedReplacer(_k, v) {
 }
 
 function canonicalOp(key, op) {
+  // expectedVersion 不进指纹：离线重试带着旧版本号回来时，同内容必须仍判为重放而不是 operation_id_reuse
   return JSON.stringify(
-    { key, type: op.type, expectedVersion: op.expectedVersion, payload: op.payload || {} },
+    { key, type: op.type, payload: op.payload || {} },
     sortedReplacer,
   );
 }
