@@ -117,3 +117,14 @@
 - **关联约束（用户原话）**：阶段6 执行 bump 前必须先停下征得用户同意（「四必问」第 ① 条）。
 - **什么时候该推翻**：若派活投影最终决定完全不进 localStorage（纯 IndexedDB 渲染），v3 可整体取消；
   若阶段6 前发现 localStorage 必须先加字段，回到本条重新决策。
+
+---
+
+## D-010 · 2026-10-27 · 幂等指纹只由 key+type+payload 决定，expectedVersion 不进指纹（阶段7 第0步）
+
+- **决策**：`canonicalOp` 的幂等指纹只由 key + type + payload 内容决定，expectedVersion 退化为纯版本校验字段（409 判定不变）。
+- **理由**：离线入队的操作带着当时的版本号，回到线上时任务版本早被别的操作推过；版本号若在指纹里，
+  同内容重发会被判 operation_id_reuse，「停服务提交 → 启服务只补一次」直接做不出来。
+- **影响面**：版本冲突判定（op.expectedVersion !== task.version → 409）保持不变；存量 operations 记录是旧指纹，
+  但它们的 operationId 不会被重发，不需要迁移。
+- **代价**：旧格式的幂等记录不可重放，只能报 operation_id_reuse。
