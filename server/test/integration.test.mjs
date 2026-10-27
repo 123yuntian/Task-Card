@@ -173,6 +173,61 @@ try {
 
   const persisted = JSON.parse(await readFile(path.join(SANDBOX_DATA, 'state.json'), 'utf8'));
   test('沙箱 state.json 落盘：状态 + 幂等记录同快照', persisted.tasks?.[KEY]?.version === 1 && Boolean(persisted.operations?.['it-accept-001']));
+
+  {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 5000);
+    let reader;
+    let buf = '';
+    let ok = false;
+    let detail = '';
+    const bounded = (promise) => Promise.race([
+      promise,
+      new Promise((_, reject) => ctrl.signal.addEventListener('abort', () => reject(new Error('SSE 超时')), { once: true })),
+    ]);
+    const waitFor = async (text) => {
+      while (!ctrl.signal.aborted) {
+        if (buf.includes(text)) return true;
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      return false;
+    };
+    try {
+      const resp = await fetch(`${BASE}/api/events`, { signal: ctrl.signal });
+      if (!resp.ok || !resp.headers.get('content-type')?.includes('text/event-stream')) throw new Error('SSE 响应不正确');
+      reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      (async () => {
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+          }
+        } catch (err) { if (!ctrl.signal.aborted) detail = String(err); }
+      })();
+      if (!await waitFor('hello')) throw new Error('未收到 hello');
+      const current = await bounded(call('/api/today'));
+      const version = current.body?.tasks?.find(x => x.definition?.dispatchKey === KEY)?.execution?.version;
+      if (!Number.isInteger(version)) throw new Error('未找到任务版本');
+      const result = await bounded(call(`/api/dispatches/${KEY}/operations`, {
+        method: 'POST', token: TOKEN,
+        body: { operationId: crypto.randomUUID(), expectedVersion: version, type: 'submit_feedback', payload: { text: 'sse-test' } },
+      }));
+      if (result.status !== 200) throw new Error(`操作失败：${JSON.stringify(result.body)}`);
+      if (!await waitFor('changed')) throw new Error('未收到 changed');
+      const events = buf.split('\n\n').flatMap(event => event.split('\n').filter(line => line.startsWith('data: ')));
+      ok = events.some(line => { try { const data = JSON.parse(line.slice(6)); return data.type === 'changed' && data.key === KEY; } catch { return false; } });
+      if (!ok) detail = `事件内容：${buf}`;
+    } catch (err) {
+      detail = String(err);
+    } finally {
+      clearTimeout(timeout);
+      ctrl.abort();
+      if (reader) await reader.cancel().catch(() => {});
+    }
+    test('SSE：连接后一次成功操作会收到 changed 事件', ok, detail);
+  }
 } finally {
   // 子进程可能已提前退出（端口占用等），此时不能再等 exit 事件
   if (child.exitCode === null && child.signalCode === null) {
