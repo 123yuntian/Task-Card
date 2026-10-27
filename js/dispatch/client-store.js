@@ -61,7 +61,7 @@ export async function loadSnapshot() {
     const tx = db.transaction('snapshots', 'readonly');
     const req = tx.objectStore('snapshots').get('today');
     req.onsuccess = () => { value = req.result ?? null; }; // 只负责取值；成败仍以事务为准
-    tx.oncomplete = () => resolve(value ? { tasks: value.tasks, savedAt: value.savedAt } : null);
+    tx.oncomplete = () => resolve(value ? { tasks: value.tasks, savedAt: value.savedAt, meta: value.meta ?? null } : null);
     tx.onerror = () => reject(tx.error ?? new Error('loadSnapshot 事务失败'));
     tx.onabort = () => reject(tx.error ?? new Error('loadSnapshot 事务被中止'));
   });

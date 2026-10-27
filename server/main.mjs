@@ -14,6 +14,15 @@ const PORT = Number(process.env.PORT) || 8317;
 const APP_NAME = 'task-card-dispatch';
 const APP_VERSION = '0.2.0';
 const BODY_LIMIT = 256 * 1024; // 请求体上限，超限 413
+const eventClients = new Set();
+
+function broadcast(message) {
+  for (const client of eventClients) {
+    try { client.write(message); } catch (err) { console.error('[sse] 广播失败：', err); eventClients.delete(client); }
+  }
+}
+
+setInterval(() => broadcast(': ping\n\n'), 15000);
 
 // 会话写令牌：每次启动随机生成，前端经同源 GET /api/session 领取，写请求带头校验
 const WRITE_TOKEN = randomBytes(24).toString('hex');
@@ -140,6 +149,17 @@ function repoStatus(err, res) {
 async function handleApi(req, res, pathname) {
   // ---- GET ----
   if (req.method === 'GET') {
+    if (pathname === '/api/events') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Connection': 'keep-alive',
+      });
+      eventClients.add(res);
+      req.on('close', () => eventClients.delete(res));
+      res.write('data: {"type":"hello"}\n\n');
+      return;
+    }
     if (pathname === '/api/health') {
       return sendJson(res, 200, { app: APP_NAME, version: APP_VERSION, node: process.version, pid: process.pid, warning: startupWarning });
     }
@@ -235,6 +255,8 @@ async function handleApi(req, res, pathname) {
     const def = manifest?.tasks?.find(t => t.dispatchKey === key) ?? null;
     try {
       const result = await repository.applyOperation(key, body.data, def);
+      try { broadcast(`data: ${JSON.stringify({ type: 'changed', key, version: result.version })}\n\n`); }
+      catch (err) { console.error('[sse] 广播失败：', err); }
       return sendJson(res, 200, result);
     } catch (err) {
       if (err instanceof RepositoryError) return repoStatus(err, res);

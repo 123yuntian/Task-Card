@@ -284,6 +284,7 @@ export function mount(container, { isActive = () => true } = {}) {
         }
       }
       if (done || dropped) toast(`已补交 ${done} 条待同步操作${dropped ? `，丢弃 ${dropped} 条（已过期）` : ''}`);
+      if (done > 0) refresh();
     } catch (err) {
       console.error('补交队列失败', err);
     } finally {
@@ -447,6 +448,8 @@ export function mount(container, { isActive = () => true } = {}) {
   }
 
 
+  const events = new EventSource('/api/events');
+  events.onmessage = () => { refresh(); };
   window.addEventListener('focus', () => { if (isActive()) refresh(); });
   refresh();
   return { refresh };
