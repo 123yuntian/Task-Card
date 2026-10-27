@@ -12,6 +12,7 @@
 
 import { fetchToday, fetchGenerations, postOperation } from './api.js';
 import { init, upsertDispatchTask, applyTaskCommand } from '../store.js';
+import { enqueue } from './client-store.js';
 
 const EXEC_LABEL = { available: '待接取', accepted: '进行中', done: '已完成', failed: '已失败', shelved: '已搁置' };
 const ACCEPT_LABEL = {
@@ -271,6 +272,11 @@ export function mount(container, { isActive = () => true } = {}) {
       toast(`${OP_LABEL[type] || type}成功`);
       refresh();
       return { ok: true };
+    }
+    if (result.error === 'network') {
+      await enqueue({ operationId: opId, key, type, payload, expectedVersion: block.item.execution.version });
+      toast('已离线，已排队待同步');
+      return { ok: false, offline: true };
     }
     // 只保留「网络失败」的重试同号（可安全重放）；服务端明确拒绝的换新号，避免触发 operation_id_reuse
     if (result.error !== 'network') pendingIds.delete(cacheKey);
