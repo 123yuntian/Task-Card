@@ -119,15 +119,16 @@ function normalizeTask(t) {
     };
 }
 
-/** 持久化当前状态 */
+/** 持久化当前状态；返回 saveData 的布尔结果（T-3 只读锁 / 配额超限时为 false） */
 function persist() {
-    saveData({ tasks: state.tasks, lastResetDate: state.lastResetDate });
+    return saveData({ tasks: state.tasks, lastResetDate: state.lastResetDate });
 }
 
-/** 持久化并广播变化（所有写操作的统一出口） */
+/** 持久化并广播变化（所有写操作的统一出口）；saved 随事件传出，供调用方提示「本地保存失败」 */
 function persistAndEmit(detail) {
-    persist();
-    emit('change', detail);
+    const saved = persist();
+    emit('change', { ...detail, saved });
+    return saved;
 }
 
 /* ================= 初始化与旧数据迁移 ================= */
@@ -246,39 +247,132 @@ export function deleteTask(id) {
 
 /* ================= 状态机迁移 ================= */
 
+/* ================= 统一命令入口（阶段6后半 · c） ================= */
+
+/**
+ * 五种状态操作（accept/complete/fail/delay/shelve）的唯一写入口：
+ * render 的五个旧导出与 workbench 的服务端成功回写都走这里，避免同一状态出现第二条写入路径。
+ *  - 只做本地写入，绝不发网络请求（双向同步是阶段7 的事）；
+ *  - 目标任务先按 id 找（render 传 id），找不到再按 dispatchKey 找（workbench 传 dispatchKey）；
+ *  - accept/delay 的 payload.deadline（服务端算好的绝对时间戳）优先，没有才本地计算，
+ *    避免两套时钟导致刷新后倒计时跳变。
+ * @param {{type:'accept'|'complete'|'fail'|'delay'|'shelve', id?:string, dispatchKey?:string, payload?:object}} cmd
+ * @returns {{ok:boolean, saved:boolean, taskId:string|null, reason?:string, blockers?:Array}}
+ */
+export function applyTaskCommand(cmd) {
+    const type = cmd?.type;
+    const payload = (cmd?.payload && typeof cmd.payload === 'object') ? cmd.payload : {};
+    const task = (cmd?.id ? getTask(cmd.id) : null)
+        || (cmd?.dispatchKey ? state.tasks.find(t => t.dispatchKey === cmd.dispatchKey) : null);
+    if (!task) return { ok: false, saved: false, taskId: null, reason: 'unknown_task' };
+
+    // 服务端成功后的快照已包含本次操作结果；新卡也已用它播种，不能再迁移或重复延时。
+    if (payload.execution && ['accept', 'complete', 'fail', 'delay', 'shelve'].includes(type)) {
+        const exec = payload.execution;
+        task.status = exec.execution;
+        task.deadline = exec.deadline ?? null;
+        for (const field of ['acceptedAt', 'completedAt', 'failedAt']) {
+            if (Object.prototype.hasOwnProperty.call(exec, field)) task[field] = exec[field];
+        }
+        task.shelveReason = exec.shelveReason ?? '';
+        const saved = persistAndEmit({ type, id: task.id });
+        return { ok: true, saved, taskId: task.id };
+    }
+
+    const now = Date.now();
+    switch (type) {
+        case 'accept': {
+            if (task.status !== 'available') return { ok: false, saved: false, taskId: task.id, reason: 'invalid-state' };
+            const blockers = getBlockers(task);
+            if (blockers.length > 0) return { ok: false, saved: false, taskId: task.id, reason: 'blocked', blockers };
+            task.status = 'accepted';
+            task.acceptedAt = now;
+            // 关键：只存绝对截止时间戳，不存剩余秒数；服务端 deadline 优先（②：绝不两套时钟）
+            task.deadline = typeof payload.deadline === 'number' ? payload.deadline : now + task.suggestedTime * 60 * 1000;
+            const saved = persistAndEmit({ type: 'accept', id: task.id });
+            return { ok: true, saved, taskId: task.id };
+        }
+        case 'complete': {
+            if (task.status !== 'accepted') return { ok: false, saved: false, taskId: task.id, reason: 'invalid-state' };
+            task.status = 'done';
+            task.completedAt = now;
+            task.deadline = null;
+            const saved = persistAndEmit({ type: 'complete', id: task.id });
+            return { ok: true, saved, taskId: task.id };
+        }
+        case 'fail': {
+            if (task.status !== 'accepted') return { ok: false, saved: false, taskId: task.id, reason: 'invalid-state' };
+            task.status = 'failed';
+            task.failedAt = now;
+            task.deadline = null;
+            const saved = persist();
+            emit('change', { type: 'fail', id: task.id, saved });
+            // 只有 timer 过期路径才广播（视图层据此弹"延时/搁置"模态框）；
+            // workbench 手动标记失败走同入口但不带 expired，避免看板误弹模态框
+            if (payload.expired) emit('task:expired', { id: task.id });
+            return { ok: true, saved, taskId: task.id };
+        }
+        case 'delay': {
+            const ms = payload.extendMinutes * 60 * 1000;
+            if (!Number.isFinite(ms) || ms <= 0) return { ok: false, saved: false, taskId: task.id, reason: 'invalid-payload' };
+            if (task.status === 'accepted' && task.deadline) {
+                // 服务端算好的绝对 deadline 优先，没有才自己加
+                task.deadline = typeof payload.deadline === 'number' ? payload.deadline : task.deadline + ms;
+            } else if (task.status === 'failed' || task.status === 'shelved') {
+                task.status = 'accepted';
+                task.deadline = typeof payload.deadline === 'number' ? payload.deadline : now + ms;
+                task.failedAt = null;
+                task.shelveReason = '';
+            } else {
+                return { ok: false, saved: false, taskId: task.id, reason: 'invalid-state' };
+            }
+            const saved = persistAndEmit({ type: 'delay', id: task.id, ms });
+            return { ok: true, saved, taskId: task.id };
+        }
+        case 'shelve': {
+            if (!['accepted', 'failed', 'shelved'].includes(task.status)) {
+                return { ok: false, saved: false, taskId: task.id, reason: 'invalid-state' };
+            }
+            task.status = 'shelved';
+            task.shelveReason = typeof payload.reason === 'string' ? payload.reason : '';
+            task.deadline = null;
+            if (!task.failedAt) task.failedAt = now;
+            const saved = persistAndEmit({ type: 'shelve', id: task.id });
+            return { ok: true, saved, taskId: task.id };
+        }
+        case 'reaccept': {
+            // render 的 reacceptTask 也从这条漏斗走（用户拍板：不许五个进漏斗一个走侧门）
+            if (!['failed', 'shelved'].includes(task.status)) {
+                return { ok: false, saved: false, taskId: task.id, reason: 'invalid-state' };
+            }
+            task.status = 'available';
+            task.deadline = null;
+            task.failedAt = null;
+            task.shelveReason = '';
+            const saved = persistAndEmit({ type: 'reaccept', id: task.id });
+            return { ok: true, saved, taskId: task.id };
+        }
+        default:
+            return { ok: false, saved: false, taskId: task.id, reason: 'unknown_type' };
+    }
+}
+
 /**
  * 接取任务：available -> accepted。
  * 依赖检查：若 blockedBy 中存在未完成任务，则拒绝并返回阻塞列表。
  * @returns {{ ok:boolean, reason?:string, blockers?:Array }}
  */
 export function acceptTask(id) {
-    const task = getTask(id);
-    if (!task || task.status !== 'available') {
-        return { ok: false, reason: 'invalid-state' };
-    }
-
-    const blockers = getBlockers(task);
-    if (blockers.length > 0) {
-        return { ok: false, reason: 'blocked', blockers };
-    }
-
-    task.status = 'accepted';
-    task.acceptedAt = Date.now();
-    // 关键：只存绝对截止时间戳，不存剩余秒数
-    task.deadline = Date.now() + task.suggestedTime * 60 * 1000;
-    persistAndEmit({ type: 'accept', id });
-    return { ok: true };
+    const result = applyTaskCommand({ type: 'accept', id });
+    if (result.ok) return { ok: true };
+    const out = { ok: false, reason: result.reason };
+    if (result.reason === 'blocked') out.blockers = result.blockers;
+    return out;
 }
 
 /** 完成任务：accepted -> done */
 export function completeTask(id) {
-    const task = getTask(id);
-    if (!task || task.status !== 'accepted') return false;
-    task.status = 'done';
-    task.completedAt = Date.now();
-    task.deadline = null;
-    persistAndEmit({ type: 'complete', id });
-    return true;
+    return applyTaskCommand({ type: 'complete', id }).ok;
 }
 
 /**
@@ -289,21 +383,7 @@ export function completeTask(id) {
  * @param {number} ms 延时时长（毫秒）
  */
 export function delayTask(id, ms) {
-    const task = getTask(id);
-    if (!task) return false;
-
-    if (task.status === 'accepted' && task.deadline) {
-        task.deadline += ms;
-    } else if (task.status === 'failed' || task.status === 'shelved') {
-        task.status = 'accepted';
-        task.deadline = Date.now() + ms;
-        task.failedAt = null;
-        task.shelveReason = '';
-    } else {
-        return false;
-    }
-    persistAndEmit({ type: 'delay', id, ms });
-    return true;
+    return applyTaskCommand({ type: 'delay', id, payload: { extendMinutes: ms / 60000 } }).ok;
 }
 
 /**
@@ -311,14 +391,7 @@ export function delayTask(id, ms) {
  * 搁置任务归入失败任务栏。
  */
 export function shelveTask(id, reason = '') {
-    const task = getTask(id);
-    if (!task || !['accepted', 'failed', 'shelved'].includes(task.status)) return false;
-    task.status = 'shelved';
-    task.shelveReason = reason;
-    task.deadline = null;
-    if (!task.failedAt) task.failedAt = Date.now();
-    persistAndEmit({ type: 'shelve', id });
-    return true;
+    return applyTaskCommand({ type: 'shelve', id, payload: { reason } }).ok;
 }
 
 /**
@@ -326,27 +399,70 @@ export function shelveTask(id, reason = '') {
  * 额外广播 'task:expired'，供视图层弹出"延时 / 搁置"模态框。
  */
 export function failTask(id) {
-    const task = getTask(id);
-    if (!task || task.status !== 'accepted') return false;
-    task.status = 'failed';
-    task.failedAt = Date.now();
-    task.deadline = null;
-    persist();
-    emit('change', { type: 'fail', id });
-    emit('task:expired', { id });
-    return true;
+    return applyTaskCommand({ type: 'fail', id, payload: { expired: true } }).ok;
 }
 
 /** 重新接取：failed/shelved -> available（清空失败痕迹与 deadline） */
 export function reacceptTask(id) {
-    const task = getTask(id);
-    if (!task || !['failed', 'shelved'].includes(task.status)) return false;
-    task.status = 'available';
-    task.deadline = null;
-    task.failedAt = null;
-    task.shelveReason = '';
-    persistAndEmit({ type: 'reaccept', id });
-    return true;
+    return applyTaskCommand({ type: 'reaccept', id }).ok;
+}
+
+/* ================= 派活卡导入（阶段6后半 · b） ================= */
+
+/**
+ * 按 dispatchKey 稳定键 upsert 一张派活卡：看板 id 固定为 'dp:' + dispatchKey，
+ * 跨日 / 跨刷新重复导入始终是同一张卡。
+ *  - 已存在：只更新派活内容字段；执行态与时间戳（status / deadline / acceptedAt /
+ *    completedAt / failedAt / shelveReason / createdAt）和 id 一概不碰。
+ *    内容没变时不落盘不广播，避免每次刷新都触发看板重渲染。
+ *  - 新建：执行态用服务端 exec 快照播种。deadline 必须用服务端算好的绝对时间戳，
+ *    绝不在本地 now + minutes 重算一遍，否则两套时钟，刷新后倒计时必跳。
+ * @param {object} def /api/today 里的 definition
+ * @param {object} [exec] 同一任务的服务端执行快照
+ * @returns {{ok:boolean, taskId:string|null}}
+ */
+export function upsertDispatchTask(def, exec = {}) {
+    const dispatchKey = def?.dispatchKey;
+    if (!dispatchKey) return { ok: false, taskId: null };
+    const id = 'dp:' + dispatchKey;
+    // 内容映射：定义侧是 title/minutes/why/steps/acceptance/contentRevision。
+    // steps 允许数组或字符串两态；render 用 textContent 渲染、\n 不显示，数组以「；」连接成一段。
+    // 「知识点」槽位放 acceptance（这张卡怎么算完）——prompt 两千字会撑爆卡片，标签暂不改、名不副实留待以后。
+    const content = {
+        goal: def.title ?? '',
+        suggestion: def.why ?? '',
+        measures: Array.isArray(def.steps) ? def.steps.join('；') : (def.steps ?? ''),
+        knowledge: def.acceptance ?? '',
+        suggestedTime: def.minutes,
+        priority: 'medium', // 派活定义没有优先级字段，固定默认值，不猜
+        dispatchContentRevision: def.contentRevision ?? null,
+        sourceTitle: def.title ?? ''
+    };
+    const existing = state.tasks.find(t => t.id === id);
+    if (existing) {
+        const changed = Object.keys(content).some(k => existing[k] !== content[k]);
+        if (changed) {
+            Object.assign(existing, content);
+            persistAndEmit({ type: 'dispatch-upsert', id });
+        }
+        return { ok: true, taskId: id };
+    }
+    // 新建：执行态从服务端 exec 播种，两边枚举字面完全一致，不需要映射表
+    const task = normalizeTask({
+        id,
+        dispatchKey,
+        blockedBy: [],
+        status: exec.execution,
+        deadline: exec.deadline,
+        acceptedAt: exec.acceptedAt,
+        completedAt: exec.completedAt,
+        failedAt: exec.failedAt,
+        shelveReason: exec.shelveReason ?? '',
+        ...content
+    });
+    state.tasks.push(task);
+    persistAndEmit({ type: 'dispatch-upsert', id });
+    return { ok: true, taskId: id };
 }
 
 /**

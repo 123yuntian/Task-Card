@@ -5,10 +5,13 @@
  *  - 不写循环定时器（P-003）；刷新由加载、窗口聚焦、手动按钮、操作完成触发。toast 用一次性 setTimeout。
  *  - 每个任务块只创建一次，刷新只更新槽位内容；反馈输入框创建后不再重建，且节点顺序不变时不重排，
  *    所以输入到一半的草稿、焦点和滚动位置不会因刷新丢失。
- *  - 与看板的 localStorage 数据互不相通（阶段6后半才接），不碰 store.js / storage.js / render.js。
+ *  - 服务端状态操作成功后，读取最新执行快照，经 upsertDispatchTask 按 dispatchKey
+ *    投影成看板 'dp:' 卡，再由 applyTaskCommand 确认执行态并报告本地保存结果。
+ *    页面加载不批量导入；看板按钮只写本地，反向同步留待阶段7。
  */
 
 import { fetchToday, fetchGenerations, postOperation } from './api.js';
+import { init, upsertDispatchTask, applyTaskCommand } from '../store.js';
 
 const EXEC_LABEL = { available: '待接取', accepted: '进行中', done: '已完成', failed: '已失败', shelved: '已搁置' };
 const ACCEPT_LABEL = {
@@ -245,6 +248,26 @@ export function mount(container, { isActive = () => true } = {}) {
     const result = await postOperation(key, op);
     if (result.ok) {
       pendingIds.delete(cacheKey);
+      if (['accept', 'complete', 'fail', 'delay', 'shelve'].includes(type)) {
+        const latest = await fetchToday();
+        const item = latest.ok && latest.published
+          ? latest.tasks.find(t => t.definition.dispatchKey === key) : null;
+        if (!item) {
+          toast('已同步服务端，但无法读取最新状态，本地尚未同步');
+          refresh();
+          return { ok: true, saved: false };
+        }
+        // today.html 不运行 app.js，写入前先加载原有任务，避免用空内存覆盖看板。
+        init();
+        upsertDispatchTask(item.definition, item.execution);
+        const local = applyTaskCommand({
+          type, dispatchKey: key,
+          payload: { ...payload, deadline: result.data.result?.deadline ?? item.execution.deadline, execution: item.execution },
+        });
+        toast(local.saved === false ? '已同步服务端，但本地保存失败' : `${OP_LABEL[type] || type}成功`);
+        refresh();
+        return { ok: true, saved: local.saved };
+      }
       toast(`${OP_LABEL[type] || type}成功`);
       refresh();
       return { ok: true };
