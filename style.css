@@ -638,3 +638,10 @@ textarea.wb-input { width: 100%; resize: vertical; }
     .wb-fb-min { width: 100%; }
 }
 
+.wb-conflict {
+    border-left: 4px solid #c0392b;
+    background: #fff0f0;
+    padding: 10px 12px;
+    color: #8b1e1e;
+}
+

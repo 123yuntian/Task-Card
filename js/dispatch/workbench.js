@@ -217,14 +217,15 @@ export function mount(container, { isActive = () => true } = {}) {
       text: EXEC_LABEL[item.execution.execution] || item.execution.execution });
     const stepsSlot = h('div', { class: 'wb-slot wb-steps-slot' });
     const actionsSlot = h('div', { class: 'wb-slot wb-actions' });
+    const conflictSlot = h('div', { class: 'wb-slot wb-conflict', hidden: true });
     const acceptSlot = h('div', { class: 'wb-slot wb-accept-slot' });
     const fb = buildFeedback(def);
     const activitySlot = h('ul', { class: 'wb-activity' });
     const el = h('details', { class: 'wb-task', open: item.execution.execution !== 'done', 'data-key': def.dispatchKey },
       h('summary', { class: 'wb-task-summary' }, h('span', { class: 'wb-task-title', text: def.title }), badge),
-      stepsSlot, actionsSlot, acceptSlot, fb.el, h('h4', { text: '最近活动' }), activitySlot,
+      stepsSlot, actionsSlot, conflictSlot, acceptSlot, fb.el, h('h4', { text: '最近活动' }), activitySlot,
     );
-    return { el, key: def.dispatchKey, badge, stepsSlot, actionsSlot, acceptSlot, fb, activitySlot, item, order, sig: '', lastExec: '' };
+    return { el, key: def.dispatchKey, badge, stepsSlot, actionsSlot, conflictSlot, acceptSlot, fb, activitySlot, item, order, sig: '', lastExec: '' };
   }
 
   function buildFeedback(def) {
@@ -302,6 +303,8 @@ export function mount(container, { isActive = () => true } = {}) {
     const op = { operationId: opId, expectedVersion: block.item.execution.version, type, payload };
     const result = await postOperation(key, op);
     if (result.ok) {
+      block.conflictSlot.textContent = '';
+      block.conflictSlot.hidden = true;
       pendingIds.delete(cacheKey);
       if (['accept', 'complete', 'fail', 'delay', 'shelve'].includes(type)) {
         const latest = await fetchToday();
@@ -334,6 +337,10 @@ export function mount(container, { isActive = () => true } = {}) {
     }
     // 只保留「网络失败」的重试同号（可安全重放）；服务端明确拒绝的换新号，避免触发 operation_id_reuse
     if (result.error !== 'network') pendingIds.delete(cacheKey);
+    if (result.error === 'version_conflict') {
+      block.conflictSlot.textContent = `这个任务已被别处更新（服务端 v${result.detail.current}），你刚才的操作没有生效；你输入的内容还在，没有被清掉；已自动拉取最新状态，请核对后重试。`;
+      block.conflictSlot.hidden = false;
+    }
     const hint = {
       version_conflict: '任务状态已被别处更新，已重新拉取，请重试',
       unknown_task: '任务不在当日发布清单里，已重新拉取',
