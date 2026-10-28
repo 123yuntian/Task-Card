@@ -11,7 +11,7 @@
 
 ## 今天日期
 
-2026-10-27（由管家更新；「今天投入的时间」仍由用户填）
+2026-10-28（由管家更新；「今天投入的时间」仍由用户填）
 
 ---
 
@@ -47,9 +47,9 @@
 | 10/25 日 | **场 2** | 阶段 1–4：备份闸门 → Node 骨架 → 原子持久化 → 发布器 | — | ✅ **完整完成**（`7b89eb1` 15:03 上半 / `71185cd` 16:57 下半；13 文件 +1326/−19；单测 27 + 集成 24；断线一次后恢复） |
 | 10/25 夜 | **场 3 上半** | 阶段 5 工作台（`today.html`）+ 阶段 6 前半（工具栏入口，只做 UI） | 90–120 min | ✅ **完成**（`d1bba7e` 22:17，7 文件 +899/−3；`state.json` 有 23:21 的 accept+fail 记录＝他真双击测过） |
 | 10/26 一 | **场 3 下半（部分）** | 阶段 6 后半 a + e：字段白名单四字段、v2→v3 迁移 | — | ✅ **a+e 完成并推送**（`db566ac` 10-27 00:48，本人 commit+push，远端 SHA 已核一致） |
-| **10/27 二** | **场 3 下半补完** | 阶段 6 后半 **b/c/d**：稳定键 upsert、统一命令入口、保存失败传播（块 B 选做 = 阶段 7 上半） | 40 + 40 min | ← 今天（熄灯日硬边界 23:20） |
-| 10/28 三 | 阶段 7 下半 + 阶段 8 收口 | SSE + 多标签冲突 + 单 timer 断言；旧修订标注补齐 | 拆 2 段 | 顺延一天 |
-| 10/29 四 | 场 4 | 阶段 9 发布命令（第一步）+ 阶段 10 综合验收 + 回滚演练 | 拆 2 段 | 顺延一天 |
+| 10/27 二 | **场 3 下半补完 + 阶段 7** | b/c/d 三项 + 幂等键解耦 + 阶段 7 上半（IndexedDB / 入队 / 补交 / 离线快照）+ 下半（SSE + 集成测试）+ AGENTS 瘦身 | 连跑 | ✅ **11 笔提交全部推远端**（HEAD == origin == `8ccf5d4`），工作区干净 |
+| **10/28 三** | **阶段 7 收尾 + 阶段 8 收口** | 多标签冲突持久提示 + 草稿不丢 + 单 timer 静态守卫；导入验收意见 / 确认验收 + 旧修订不可确认 | 40 + 35 min | ← 今天（熄灯日硬边界 23:20） |
+| 10/29 四 | 场 4 | 阶段 9 发布命令（**第一步**）+ 阶段 10 综合验收 15 项 + 回滚演练 | 拆 2 段 | 待 |
 | 10/30 五 | 缓冲 | 补测 / 遗留 / R-006（按重构后新代码重 Grep 行号） | | |
 | 之后 | v2.0 | 两视图骨架；R-003 多标签覆盖、R-008 数据导入 | | 顺延不作废 |
 
@@ -67,49 +67,46 @@
 - 完整方案：`C:\Users\10561\.workbuddy\plans\cosmic-pulse-tesla-2D6gWOQN.md`
 - 四场提示词：`C:\Users\10561\.workbuddy\plans\dispatch-refactor-4-prompts.md`
 - 多 Agent 审查：`C:\Users\10561\.workbuddy\plans\dispatch-review-agents.md`
-- 今日派活页（**今天用这份**）：`D:\ProgramData\.workbuddy\2026-09-24-20-35-19\projects\vibe-coding\30-today-1027.html`
-  （`29-today-1026.html` = 场 3 下半前半（a+e），已执行完；`28-today-1025-night.html` = 场 3 上半；`27-today-1025.html` = 已作废的"四场全跑版"）
+- 今日派活页（**今天用这份**）：`D:\ProgramData\.workbuddy\2026-09-24-20-35-19\projects\vibe-coding\32-today-1028.html`
+  （`31-today-1027-night.html` = 阶段 7 上半/下半夜间版，已执行完；`30-today-1027.html` = 场 3 下半补完；`29-today-1026.html` = 场 3 下半前半 a+e）
 
 ---
 
 ## 下一步（只写一个动作）
 
 ```
-【10/27 场 3 下半补完 · 块 A = 阶段 6 后半 b/c/d，块 B（选做）= 阶段 7 上半】
-昨夜 `db566ac` 只落了 a（四字段白名单）和 e（v2→v3 迁移），b/c/d 三项经 grep 现场核实**一条都没做**。
+【10/28 阶段 7 收尾（块A）+ 阶段 8 收口（块B）】
+10/27 一夜落了 11 笔（阶段 7 上半 + 下半主体 + 幂等解耦 + AGENTS 瘦身），**只剩两格**：
+多标签冲突（前端只弹 3.5 秒 toast，页面上什么都不留）与阶段 8 的两个按钮。
 
-0. 开跑前 3 分钟：工作区只应有 `M NOW.md`（管家今天改的文档，**不影响 ZCode 自查，它会连这笔一起提交**），
-   业务代码文件必须干净。只需再确认 ZCode 选择器停在 `group/main`（别停在 GLM-5.3-Flash）。
-1. 双击 `start.bat` → `127.0.0.1:8317/today.html`，**今天应有两条任务**（块A / 块B，内容修订 r2）。
-   铺底已于 10/27 12:0x 由管家完成（`gen-2026-10-27-mvq654kf-c645da`，两条 `available` v0）——
-   agent 只需 `GET /api/today` 核对 `published:true`，**不许重发**。
-2. 粘派活页 p1（整段）。三项一根链条，缺一环就断：
-   **b** `upsertDispatchTask(def, exec)`，键 = dispatchKey，id = `'dp:' + dispatchKey`，只更内容字段、不碰 status/deadline/时间戳；
-   **c** `applyTaskCommand({type, dispatchKey, payload})` 统一 accept/complete/fail/delay/shelve，返回 `{ok, saved, taskId}`，
-       **禁止事件监听里二次写入**；
-   **d** `persist()` 返回 saveData 布尔 → `persistAndEmit` 带 `saved` → workbench 在 `saved===false` 时 toast 改「已同步服务端，但本地保存失败」。
-3. 硬约束：只改 `js/store.js` + `js/dispatch/workbench.js`（storage.js 只在 persist 传参处动）；
-   **禁改 `js/render.js`（mtime 必须仍是 2026-10-06 18:13）、`js/timer.js`、`server/`**。
-4. 自证六条：① /today.html 有两条内容 ② 点接取 → 看板长出卡片（**这条链路至今从未真跑过**）
-   ③ F5 倒计时接着走 ④ 三列卡与上一场一模一样 ⑤ 反馈框打一半字去点接取，字还在
-   ⑥ 反向：把 localStorage 改坏成非法 JSON 再点接取 → 必须显示「本地保存失败」而不是「成功」。
-5. 停下 → 交【待提交清单】+【存档点】→ 管家扫 → 用户图形界面 commit（第 5 笔）。
-6. 块 B（选做，21:30 前没开工就放弃）：粘 p2 做阶段 7 上半。**第 0 步不是写 IndexedDB，
-   而是把 `repository.mjs` 的 `canonicalOp` 里 `expectedVersion` 从幂等指纹中摘出去**（不摘就做不出"只补一次"），
-   改完 27 条单测必须全绿。
+0. 开跑前 3 分钟：`git status` 只应有 `M NOW.md`（管家改的文档），`js/` 与 `server/` 必须干净；
+   ZCode **选择器点具体模型**（`api/gpt-6.1-terra` 优先），**不要停在 `group/main`**，推理档位「中」。
+1. 双击 `start.bat` → `127.0.0.1:8317/today.html`，今天两条任务已在页面上：
+   `tc-refactor-stage7b`（块A，r1，available v0）/ `tc-refactor-stage8`（块B，r2，available v1，**已预置 1 条 r1 旧意见**）。
+   铺底 = `gen-2026-10-28-mvrgkgcc-847efa`，**不许重发**。
+2. 暖身 5 分钟（不改代码）：两个标签页都开 today.html，标签1 点块A「接取」，标签2 再点一次 → 只看那条 toast 3.5 秒后消失。
+3. 粘派活页 p1（整段）做块 A：
+   **a** `buildBlock` 里加 `conflictSlot`（actionsSlot 之后、acceptSlot 之前），409 时写三句话、下次成功才清空；
+   **b** 新增 `server/test/static-guards.mjs`：全站 `setInterval(` 只准 1 处且在 `js/timer.js`，`js/dispatch/` 零轮询，`today.html` 零 `setInterval(`。
+4. 硬约束：只改 `js/dispatch/workbench.js` + `style.css`（仅追加）+ 新增那个测试文件；
+   **禁改 `js/render.js`（mtime 必须仍是 2026-10-06 18:13）、`js/timer.js`、`js/store.js`、`server/*.mjs`**。
+5. 自证：① 两个标签页制造 409 → 出现**不会自己消失**的红条，且反馈框里打了一半的字还在
+   ② `static-guards` 输出 `SUMMARY pass=3 fail=0`，临时加一条 `setInterval` 能报 FAIL
+   ③ F5 倒计时连续、`index.html` 三列卡没多没少。
+6. 块 B（21:30 前没开工就放弃）：粘 p2。真 bug 是 `repository.mjs:220-224` 的 confirm 不看修订号，
+   旧意见一确认就把 `acceptanceStatus` 改成 `passed` → 服务端要加 `stale_review` 兜底（409），
+   前端只给当前修订的意见留确认按钮，旧修订置灰且不可确认。
 7. 硬停点：熄灯日 **23:20 硬线**；只做完块 A 也算打卡。
 
-**10/27 现场核实（管家派活前 grep，不是听自述）**：
-· `SCHEMA_VERSION = 3`（storage.js:19）✓ / `normalizeTask` 四字段在 storage.js:105-108 ✓
-· `grep -c applyTaskCommand js/*.js` = 0 → c 未做；`grep -rn "saved" js/ server/` = 0 命中 → d 未做；
-  `grep -n dispatchKey js/store.js` = 0 → b 未做
-· `dispatch-data/state.json` 里唯一那条 accept+fail 的 key 是 `tc-refactor-stage9-10`（**测试夹具 sample.json 的键**），
-  不是派给他的两条任务 → **「接取 → 看板出现卡片」这条链路到 10/26 夜为止一次都没真跑过**，
-  10/26 记录的"他真双击测过"应更正为"测的是服务端 API 与浏览器迁移，不是两页面间的数据流"
-· 铺底时发现并已修正：同一件事顺延**不能改 dispatchKey**（我先改成 `stage6b-rest`，会让昨天执行记录断链，已改回 `tc-refactor-stage6b` 并把 `contentRevision` 升到 2）
+**10/28 现场核实（管家派活前 grep + 跑测试，不是听自述）**：
+· `grep -rn "BroadcastChannel|tabId|isLeader|多标签" js/ server/` = **0 命中** → 多标签冲突未做
+· `grep -rn setInterval js/` = 仅 `js/timer.js:35` 1 处（事实成立，但**没有守卫**）
+· `workbench.js:421` 仍写「确认按钮在阶段 8 接入」→ 阶段 8 的 UI 未接
+· `repository.mjs:220-224` confirm 直接 `patch.acceptanceStatus = verdict`，不看 `relatedContentRevision` → 旧修订会冒充当前通过
+· `workbench.js:418-419` 只有文字「（旧修订，仅供参考）」，**没有置灰**
+· 单测 `node server/test/phase3-4.test.mjs` = **pass=28 fail=0**；集成测试全绿；`git status` 干净，HEAD == origin == `8ccf5d4`
 
-**10/28**：阶段 7 下半（SSE + 多标签冲突 + 单 timer 断言）+ 阶段 8 收口。
-**场 4 顺延到 10/29**，缓冲到 10/30。
+
 ```
 
 > **10/25 夜场复盘（10/26 13:20 更新）**：场 3 上半按期交付并已提交 —— `d1bba7e`（22:17）7 文件 +899/−3，
@@ -141,7 +138,7 @@
 R-006 / R-004 / R-005 / v2.0 全部顺延到四场之后，本文件不再保留它们的旧行号。
 ```
 
-- **今天（周一）是熄灯日**：晚上块硬边界 23:20，需要网络的步骤排在之前。
+- **今天（周三）是熄灯日**：晚上块硬边界 23:20，需要网络的步骤排在之前。
 - 备份现状（10/26 13:20 第三次核）：`backup\` 里两份导出 **都是默认种子数据** ——
   `taskcard-backup-20261024.json`（1661B，已被 `28c005a` 提交）与 `taskcard-localstorage-20261025-145456.json`（2049B，10/25 14:54 亲手导），
   内容均为 `version:2 / tasks:3 / lastResetDate` 当天 / `taskStates:null`，三条任务仍是「学习 JavaScript 基础 / CSS 布局练习 / 阅读技术文档」。
@@ -149,14 +146,17 @@ R-006 / R-004 / R-005 / v2.0 全部顺延到四场之后，本文件不再保留
 - 环境现状（10/26 13:20 复核）：系统 node = `C:\Program Files\nodejs\node.exe` **v24.21.0**（`start.bat` 绑的就是它）；
   WorkBuddy 自带的 `C:\Users\10561\.workbuddy\binaries\node\versions\22.22.2-6\node.exe` = v22.22.2（**不要绑进 start.bat**）；
   项目仍无 `package.json`；`dispatch-data\` 已被 .gitignore 排除（运行数据不入库）。
-- 判断标准（场 3 下半）：① `/today.html` 今天有内容且不是拿 10-25 冒充 ② 接取后看板出现卡片、F5 倒计时连续
-  ③ 重复导入不新增重复卡 ④ 三列卡与倒计时与上一场完全一致（动了 render.js 就会缺东西）。
-- **阶段 7 现状（10/26 实测）**：`grep -rn "EventSource|indexedDB" js/ server/` 零命中 → 一行未写，不是"做了一半"。
-- **阶段 8 现状（10/26 实测）**：已约八成落地 —— `workbench.js:334-336` 有「旧修订，仅供参考」标注，
-  `server/schema.mjs:11` 已有 `import_ai_review` / `confirm_ai_review` 操作类型，`REVIEW_LABEL` 有 pending/passed/changes_requested。
-  明天只补验收断言与"改版后旧结论置灰"，不重做。
-- 模型：主会话走路由组 `主实现-main`（GLM-5.3，免费额度），不满意再手动切 Claude Opus 5.5；
-  审查用 `审查-review` 只读、冲突裁决用 deepseek-v4-pro。**全程禁用「完全访问」**，发现越界就降到「变更前确认」。
+- 判断标准（10/28 两块）：① 两个标签页制造 409 → 出现**不会自己消失**的红条，反馈框里打了一半的字还在
+  ② `node server/test/static-guards.mjs` = `SUMMARY pass=3 fail=0`，且临时加一条 `setInterval` 能报 FAIL
+  ③ 块 B 里预置的 r1 旧意见：灰、无确认按钮、带「不可确认」；新导入的 r2 意见能点「通过」→ 验收通过
+  ④ 对旧意见发 confirm 必须 409 `stale_review`，`acceptanceStatus` 不变 ⑤ F5 倒计时连续、三列卡没多没少（动了 render.js 就会缺东西）。
+- **阶段 7 现状（10/28 实测）**：上半 + SSE + 补交 + 离线快照**已全部提交**；**只剩多标签冲突**（`BroadcastChannel|tabId|isLeader|多标签` 全仓 0 命中）。
+  单 timer 事实成立（`js/timer.js:35` 全仓唯一 `setInterval`），但**没有守卫**，今天补静态断言。
+- **阶段 8 现状（10/28 实测）**：后端两种操作齐（`schema.mjs:11`、`repository.mjs:207-224`），前端只有只读展示（`workbench.js:412-423`），
+  421 行自己写着「确认按钮在阶段 8 接入」。**真 bug**：confirm 不看 `relatedContentRevision`，旧修订一确认就 `acceptanceStatus = passed`。
+- 模型（10/27 实测口径，覆盖旧路由组建议）：**选择器点具体模型，不要停 `group/main`** —— 组的动态健康排序会把你甩到付费通道，
+  且 `group/main` 高 档在长思考任务上会空转（同一活 5 分 53 秒读完三遍文件一行没改）。首选 `api/gpt-6.1-terra`（北辰 $1/$5），推理档位「中」。
+  **全程禁用「完全访问」**，发现越界就降到「变更前确认」。
 - 工具锁：ZCode（W/S 模式）+ WorkBuddy（派活/验收），冻结到 2027-01-17。
 
 ---
@@ -169,6 +169,11 @@ R-006 / R-004 / R-005 / v2.0 全部顺延到四场之后，本文件不再保留
 
 ## 上一次跑通的版本
 
+- **10/27 打卡判定：已打卡（三选三，且是十天来最硬的一天）—— 11 笔提交，全部已推远端。**
+  `0c27709`（场 3 下半补完 b/c/d）/ `89d3565` + `71a8809` + `fc3dbf8`（基线归零 + 幂等键解耦 + DECISIONS D-010）/
+  `f457f44` + `5dfd204` + `f362c0d` + `837930d`（阶段 7 上半：IndexedDB → 入队 → 按序补交 → 离线快照）/
+  `0cda9fb` + `f670e0a`（阶段 7 下半：SSE + 三处修正 + SSE 集成测试）/ `8ccf5d4`（AGENTS.md 瘦身 −83%）。
+  `git ls-remote origin HEAD` 与本地 HEAD 同为 `8ccf5d4`，工作区干净。**唯一没做的是多标签冲突与阶段 8 的按钮**，就是今天这两块。
 - **10/25 打卡判定：已打卡（三选二：产出 + 提交）。场 3 上半完整交付。**
   `d1bba7e`（10-25 22:17，用户本人提交）「派活重构场3上半：固定工作台(today.html)+ Task Card 接入」，
   7 文件 **+899/−3**：`today.html`(27) / `js/dispatch/api.js`(76) / `js/dispatch/workbench.js`(439) /
@@ -179,14 +184,15 @@ R-006 / R-004 / R-005 / v2.0 全部顺延到四场之后，本文件不再保留
   `db566ac`（**10-27 00:48**，本人 commit + push，`git ls-remote origin HEAD` 已核为同一 SHA）「派活重构场3下半：数据模型 v2→v3」。
   agent 自行发现 `exportData` 硬编码 `version:2` 并改读 `SCHEMA_VERSION`（范围内必改、主动抓到）。
   隔夜验证：Node 四路径（v2→v3 / v1 兼容 / v4→T-3 只读 / store 全流程）+ 浏览器迁移前后逐字段 diff + 导出 version:3。
-- 最新提交：`db566ac`（10-27 00:48 场 3 下半 a+e）；上一笔 `1f9fc5c`（10-26 22:59 Update NOW.md）；
-  再上 `d1bba7e`（10-25 22:17 场 3 上半）/ `0d15d95` / `71185cd`（场 2 下半）/ `7b89eb1`（场 2 上半）/ `28c005a`。
+- 最新提交：`8ccf5d4`（10-28 00:55 AGENTS.md 瘦身）；上一笔 `f670e0a`（10-28 00:33 阶段 7 下半 SSE 集成测试）/
+  `0cda9fb`（10-28 00:03 SSE 推送）/ `837930d`（10-27 23:36 离线快照）/ `f362c0d` / `5dfd204` / `f457f44`。
 - **10/24 打卡判定：已打卡（三选二）** —— 亲手导出 localStorage 备份 + 产物文件落盘。
 - **10/23 打卡判定：打卡成立（分级口径）+ 第 1 场内容顺延** —— 当晚产出全在工具链上（三个 ZCode 子代理 + Magpie 路由组），
   有文件有配置，但第 1 场零输出；原样顺延，不问责。
 - **10/22 打卡判定：已打卡（三选三）** —— `a1faa5c` 两行全改 + 亲手 commit + `d85d0ff` 提交 NOW/AGENTS。
-- 截至 10/27 12:0x 工作区只有 `M NOW.md`（管家本轮改写：日期 / 四场表 / 下一步 / 现场核实 / 打卡判定，不含业务代码），
-  **待用户提交** —— 这笔不用单独提，跟今天块 A 一起 commit 即可（工作区"脏"不影响 ZCode 自查，它只查代码文件）。
+- 截至 10/28 09:5x 工作区只有 `M NOW.md`（管家本轮改写：日期 / 四场表 / 下一步 / 现场核实 / 打卡判定，不含业务代码），
+  **待用户提交** —— 这笔不用单独提，跟今天块 A 一起 commit 即可（工作区"脏"不影响 ZCode 自查，它只查代码文件；
+  块 A 的提示词里已写明「只允许 M NOW.md」）。
 - **业务代码自 10/25 15:12 起重新动起来了**：`js/app.js`（T-3 横幅）、`js/storage.js`（守卫）、
   `index.html`（工具栏）、新增 `js/dispatch/*` 与 `server/*`。此前"最后一行业务改动 = 2026-10-10 19:37"的记录作废。
 - 接手测试结论（管家 10-11 亲验）仍然有效：框架文件齐全，新 agent 只给路径即可答对三问。
@@ -195,9 +201,9 @@ R-006 / R-004 / R-005 / v2.0 全部顺延到四场之后，本文件不再保留
 
 ## 卡在哪 / 需要谁帮忙
 
-- **没有技术阻塞。** 阶段 1–5 与阶段 6 前半已过，备份闸门 10/25 14:54 已完成。
-- 当前唯一需要人来做的事：**v2→v3 那一刀要你点头**（D-009 承诺，管家已在派活页给出 A/B 两案与推荐）。
-  agent 不许自己决定版本号。
+- **没有技术阻塞。** 阶段 1–7 已过（阶段 7 只差多标签冲突一格，今天补），备份闸门 10/25 14:54 已完成。
+- 当前唯一需要人来做的事：**多标签冲突只有你能验**（要开两个浏览器标签页，agent 看不见浏览器画面）。
+- v2→v3 那一刀已于 10/27 00:48 落地（`db566ac`），D-009 的点头记录已闭环，不再需要你决策。
 - 接手测试已结案（管家 10-11 亲验）：三问全对、只读 5 个文件 → 框架成立。
 - v2.0 前置条件：R-001 ✅ 已修、R-002 ⛔ 作废 → 前置已解除，但 v2.0 排在四场重构之后。
 - 支线封存：TRAE / Qoder / Hermes Agent / Our Free Model / Magpie —— 一律不展开，工具组合冻结至 2027-01-17。
