@@ -24,7 +24,7 @@ const PRIORITY = {
 };
 
 /** DOM 挂载点引用（init 时缓存） */
-let boardEl, failedEl, doneEl, archivedEl, doneCountEl, archivedCountEl, modalRoot, toastEl;
+let boardEl, failedEl, doneEl, archivedEl, doneCountEl, archivedCountEl, modalRoot, toastEl, summaryEl;
 
 /** 当前"选中"的任务 id（鼠标悬停或点击卡片，供快捷键使用） */
 let selectedId = null;
@@ -51,6 +51,7 @@ export function init() {
     archivedEl = document.getElementById('archived-list');
     doneCountEl = document.getElementById('done-count');
     archivedCountEl = document.getElementById('archived-count');
+    summaryEl = document.getElementById('summary-bar');
     modalRoot = document.getElementById('modal-root');
     toastEl   = document.getElementById('toast');
 
@@ -120,6 +121,9 @@ function renderAll() {
     archivedEl.innerHTML = archived.map(archivedHTML).join('') || '<p class="empty">暂无已归档任务</p>';
     doneCountEl.textContent = done.length;
     archivedCountEl.textContent = archived.length;
+    const accepted = tasks.filter(t => t.status === 'accepted').length;
+    const next = tasks.filter(t => t.status === 'accepted' && t.deadline).map(t => t.deadline).sort((a, b) => a - b)[0];
+    summaryEl.textContent = `今日概要：进行中 ${accepted} · 已完成 ${done.length} · 失败 ${failed.length}` + (next ? ` · 下一截止 ${formatStamp(next)}` : '');
 
     // 重建 DOM 后立即刷新一次倒计时，避免闪烁
     updateCountdowns(Date.now());

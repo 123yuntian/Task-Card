@@ -679,3 +679,40 @@ textarea.wb-input { width: 100%; resize: vertical; }
     background: #f2f3f4;
     border: 1px solid #c7cbd0;
 }
+
+#layout {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 20px;
+    align-items: start;
+}
+
+#summary-bar {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+#main-col { min-width: 0; }
+#main-col #task-container { max-width: none; margin: 0; }
+#side-col { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
+#side-col #done-section, #side-col #archived-section, #side-col #failed-section {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 8px;
+}
+#side-col summary, #side-col h2 { color: #333; text-shadow: none; }
+#side-col .empty { color: #555; }
+
+@media (max-width: 1100px) {
+    #layout { grid-template-columns: 1fr; }
+    #side-col { position: static; }
+}
