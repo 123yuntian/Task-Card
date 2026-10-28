@@ -452,7 +452,8 @@ export function mount(container, { isActive = () => true } = {}) {
             onclick: () => send(def.dispatchKey, 'confirm_ai_review', { reviewId: r.id, verdict }) }));
         }
       }
-      lines.push(line);
+      lines.push(line, h('details', { class: 'wb-review-text' },
+        h('summary', { text: '原文' }), h('pre', { text: r.originalText })));
     }
     lines.push(h('p', { class: 'wb-accept-line', text: '注：「完成」只代表本次执行结束；是否达标以你确认的验收结论为准，旧修订的意见不能确认。' }));
     b.acceptSlot.replaceChildren(...lines);
