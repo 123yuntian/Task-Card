@@ -64,6 +64,14 @@ export function init() {
     // 键盘快捷键
     document.addEventListener('keydown', handleKeydown);
 
+    // 跨标签页同步：today.html 或另一个看板标签改了同一份 localStorage 时，
+    // 浏览器会把 'storage' 事件发给**其他**标签页（不发给写入方自己），这里重新加载并重渲染
+    window.addEventListener('storage', (e) => {
+        if (e.key !== 'taskCardData' || !e.newValue) return;
+        store.init();
+        renderAll();
+    });
+
     renderAll();
 }
 
@@ -83,6 +91,13 @@ function formatRemaining(ms) {
     const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
     const s = String(total % 60).padStart(2, '0');
     return `${h}:${m}:${s}`;
+}
+
+/** 时间戳 -> MM-DD HH:MM（完成时间；P-006：本地字段拼接，不用 toISOString） */
+function formatStamp(ts) {
+    const d = new Date(ts);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 /* ================= 渲染 ================= */
@@ -125,6 +140,7 @@ function cardHTML(task) {
             <div class="section-content">${esc(task.knowledge)}</div>
         </div>
         ${blocked ? `<div class="blocked-hint">被「${blockers.map(t => esc(t.goal)).join('、')}」阻塞</div>` : ''}
+        ${task.status === 'done' && task.completedAt ? `<div class="done-time">完成于 ${formatStamp(task.completedAt)}</div>` : ''}
         <div class="card-footer">
             <span class="time">建议 ${task.suggestedTime} 分钟</span>
             <span class="pomodoro">🍅 x${pomodoros}</span>

@@ -2,6 +2,11 @@
 
 ## 1. 怎么跑起来
 
+> **2026-10-28 起，日常就一种：双击 `start.bat`。** 它现在会自己判断——
+> 端口空着就起服务并开浏览器；端口已被占用且对方应答是 Task Card，就直接开浏览器、不动进程；
+> 被别的程序占着才提示。**任何情况下都不要去任务管理器杀 `node.exe`**（会连带杀掉别的服务）。
+> 页面看起来是旧的？按 `Ctrl+F5` 强刷。
+
 ### ✅ 方式一：CodeBuddy 预览面板（日常用这个）
 
 1. 在 CodeBuddy 里打开 `C:\Users\10561\Desktop\Task Card\`
@@ -57,3 +62,66 @@ push 到 main 分支，等一两分钟，访问 Pages 地址。
 
 - 备份：点页面上的「导出数据」，拿到 JSON 存到别处
 - 恢复：目前没有导入按钮（缺失功能），只能手动改 localStorage
+
+## 6. 发布今天的派活（命令行）
+
+```bat
+node server\publish.mjs "C:/某个路径/definition.json"            :: 真发布
+node server\publish.mjs "C:/某个路径/definition.json" --dry-run  :: 只看差异，不写盘
+```
+
+- 必须是**绝对路径 + .json 文件**（不接受目录、通配符）；校验不过会列全部错误并退出码 1，不写任何文件。
+- 发布成功后**服务不用重启**：`/today.html` 下次请求就会读到新 manifest（实测）。
+- 失败时旧内容原样保留（实测：manifest mtime 不变、旧 generation 仍是当前）。
+- 发布失败最常见的原因：`dispatchKey` 重复、`minutes` 不是正数、`date` 不是 `YYYY-MM-DD`。
+
+## 7. 测试沙箱（想随便点就用它）
+
+双击桌面 `TaskCard-sandbox.bat` → 复制整份项目到 `%TEMP%\tc-sandbox` → 在 **8320** 起服务（真实 8317 的数据只被读、不被改）。
+页面右下角有控制台（**8329** 端口，独立进程）：
+
+| 按钮 | 作用 |
+|---|---|
+| ↩ 撤回上一步 | 用 `state.json.bak` 盖回去（**只能退一步**） |
+| ⟳ 重启（拉最新代码） | 重新复制 js/server/页面，数据保留 |
+| ↺ 回到开工 | 两条任务重置成「待接取 v0」，并清掉看板里的派活卡（`dp:` 开头的） |
+| ↺ 回到启动时的真数据 | 恢复成启动那一刻拷过来的真实数据（可能已完成/已失败） |
+| ＋ 造一条旧修订意见 | 给最后一条任务加一条 `relatedContentRevision = 当前-1` 的意见，用来验「旧修订不可确认」 |
+
+- **8321 是集成测试固定端口，沙箱不许占用**（占过一次，集成测试直接红）。
+- 关掉黑窗口 = 全部停止；同时只开一个沙箱窗口（撤回依赖"最近一次写盘"）。
+
+## 8. 备份 / 恢复 / 回滚（2026-10-28 实测过一遍）
+
+**现有两份导出，字段类型不一样，恢复时要注意：**
+
+| 文件 | `taskCardData` 类型 | 说明 |
+|---|---|---|
+| `backup\taskcard-backup-20261024.json` | **字符串** | 原样写回 `localStorage['taskCardData']` 即可 |
+| `backup\taskcard-localstorage-20261025-145456.json` | **对象** | 先 `JSON.stringify` 再写回 |
+
+恢复步骤（F12 控制台）：
+
+```js
+const bak = await (await fetch('/backup/xxx.json')).json();   // 或手动打开文件复制内容
+localStorage.setItem('taskCardData', typeof bak.taskCardData === 'string' ? bak.taskCardData : JSON.stringify(bak.taskCardData));
+location.reload();
+```
+
+实测结果：两份都能恢复到 3 张原任务，`version:2 → 3` 自动迁移，之前塞进去的乱数据全部消失。
+
+**程序被回滚（数据比程序新）**：页面顶部会出现橙色「只读保护」横幅，任务照常显示但任何改动都不保存。
+解决办法：换回新版程序，或用上面的导出文件恢复。**注意：直接改 localStorage 是绕过程序的，拦不住——拦截点在 `saveData`。**
+
+**服务端状态恢复（`dispatch-data/state.json` 损坏）**：服务启动时会自动从 `state.json.bak` 恢复，页面照常可用，
+日志会打印「已从 state.json.bak 恢复」。**代价：丢最后一次写入**（实测 v8 → v7，那条反馈没了）。要零丢失得做多份快照，属 v2.0。
+
+## 9. 常见故障速查
+
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| 双击 `start.bat` 黑窗口一闪 | 端口被别的程序占着 | 看提示；别杀 node，先确认 8317 是谁 |
+| 页面改完没变化 | 浏览器缓存 | `Ctrl+F5` |
+| 集成测试红、报端口 8321 被占用 | 沙箱或别的服务占了 8321 | 关掉沙箱窗口再跑测试 |
+| today 里点了完成、看板没变 | 跨标签同步没生效（旧版） | 现已在 `render.js` 里监听 `storage`，强刷一次确认版本 |
+| 看板显示"数据版本高于本程序" | 程序被回滚 | 换回新版程序，或用 `backup\` 恢复 |

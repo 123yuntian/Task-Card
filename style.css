@@ -647,3 +647,9 @@ textarea.wb-input { width: 100%; resize: vertical; }
 
 .wb-review-stale { color: #6c757d; }
 
+
+.done-time {
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    color: #6b7280;
+}
