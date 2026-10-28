@@ -9,7 +9,7 @@ import { validateOperation } from './schema.mjs';
 const STATE_FORMAT = 1;
 
 export class RepositoryError extends Error {
-  // kind: validation | version_conflict | operation_id_reuse | unknown_task | corrupted | write_failed
+  // kind: validation | version_conflict | operation_id_reuse | unknown_task | stale_review | corrupted | write_failed
   constructor(kind, detail) {
     super(kind);
     this.kind = kind;
@@ -220,6 +220,7 @@ export class Repository {
       case 'confirm_ai_review': {
         const review = task.reviews.find(r => r.id === p.reviewId);
         if (!review) throw illegal(`找不到验收意见 ${p.reviewId}`);
+        if (review.relatedContentRevision !== (def?.contentRevision ?? task.contentRevision)) throw new RepositoryError('stale_review', { reviewId: review.id });
         const reviews = task.reviews.map(r => (r.id === p.reviewId ? { ...r, status: p.verdict, decidedAt: now } : r));
         return { patch: { acceptanceStatus: p.verdict, reviews, history: [...task.history, hist] }, result: { type: 'confirm_ai_review', reviewId: p.reviewId, verdict: p.verdict } };
       }

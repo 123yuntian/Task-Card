@@ -645,3 +645,5 @@ textarea.wb-input { width: 100%; resize: vertical; }
     color: #8b1e1e;
 }
 
+.wb-review-stale { color: #6c757d; }
+

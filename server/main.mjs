@@ -141,6 +141,7 @@ function repoStatus(err, res) {
     case 'version_conflict': return sendJson(res, 409, { error: 'version_conflict', current: err.detail.current });
     case 'operation_id_reuse': return sendJson(res, 409, { error: 'operation_id_reuse', operationId: err.detail.operationId });
     case 'unknown_task': return sendJson(res, 422, { error: 'unknown_task', key: err.detail.key });
+    case 'stale_review': return sendJson(res, 409, { error: 'stale_review', reviewId: err.detail.reviewId });
     case 'corrupted': return sendJson(res, 500, { error: 'state_corrupted', hint: 'state.json 与备份均损坏，服务只读，请人工检查 dispatch-data' });
     default: return sendJson(res, 500, { error: 'write_failed', detail: err.detail ?? err.message });
   }

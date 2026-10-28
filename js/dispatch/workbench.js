@@ -219,11 +219,30 @@ export function mount(container, { isActive = () => true } = {}) {
     const actionsSlot = h('div', { class: 'wb-slot wb-actions' });
     const conflictSlot = h('div', { class: 'wb-slot wb-conflict', hidden: true });
     const acceptSlot = h('div', { class: 'wb-slot wb-accept-slot' });
+    const reviewText = h('textarea', { class: 'wb-input', rows: 3, placeholder: '验收意见原文', 'aria-label': '验收意见原文' });
+    const reviewSource = h('input', { class: 'wb-input', placeholder: '来源（必填，例如 WorkBuddy 审查 · 10/28）', 'aria-label': '验收意见来源' });
+    const reviewCommit = h('input', { class: 'wb-input', placeholder: 'commit（可选）', 'aria-label': '验收意见 commit' });
+    const reviewButton = h('button', { class: 'wb-btn', type: 'button', text: '导入验收意见' });
+    reviewButton.addEventListener('click', async () => {
+      const source = reviewSource.value.trim();
+      const originalText = reviewText.value.trim();
+      if (!source) { toast('请填写验收意见来源'); return; }
+      if (!originalText) { toast('请填写验收意见原文'); return; }
+      const commitHash = reviewCommit.value.trim();
+      const payload = { source, originalText, relatedContentRevision: blocks.get(def.dispatchKey).item.definition.contentRevision ?? 1 };
+      if (commitHash) payload.commitHash = commitHash;
+      reviewButton.disabled = true;
+      const result = await send(def.dispatchKey, 'import_ai_review', payload);
+      reviewButton.disabled = false;
+      if (result.ok) { reviewText.value = ''; reviewSource.value = ''; reviewCommit.value = ''; }
+    });
+    const reviewForm = h('section', { class: 'wb-feedback' }, h('h4', { text: '验收意见' }),
+      reviewText, reviewSource, reviewCommit, reviewButton);
     const fb = buildFeedback(def);
     const activitySlot = h('ul', { class: 'wb-activity' });
     const el = h('details', { class: 'wb-task', open: item.execution.execution !== 'done', 'data-key': def.dispatchKey },
       h('summary', { class: 'wb-task-summary' }, h('span', { class: 'wb-task-title', text: def.title }), badge),
-      stepsSlot, actionsSlot, conflictSlot, acceptSlot, fb.el, h('h4', { text: '最近活动' }), activitySlot,
+      stepsSlot, actionsSlot, conflictSlot, acceptSlot, reviewForm, fb.el, h('h4', { text: '最近活动' }), activitySlot,
     );
     return { el, key: def.dispatchKey, badge, stepsSlot, actionsSlot, conflictSlot, acceptSlot, fb, activitySlot, item, order, sig: '', lastExec: '' };
   }
@@ -344,6 +363,7 @@ export function mount(container, { isActive = () => true } = {}) {
     const hint = {
       version_conflict: '任务状态已被别处更新，已重新拉取，请重试',
       unknown_task: '任务不在当日发布清单里，已重新拉取',
+      stale_review: '这条意见针对的是旧修订，不能确认，请对新版重新导入',
       network: '本地服务未连接，稍后请重试（离线补交在阶段7）',
     }[result.error] || result.error;
     toast(`${OP_LABEL[type] || type}失败：${hint}`);
@@ -418,15 +438,24 @@ export function mount(container, { isActive = () => true } = {}) {
 
   function renderAccept(b, item) {
     const { definition: def, execution: exec } = item;
-    const lines = [`验收条件：${def.acceptance || '（发布时未填，导入后需补）'}`];
-    lines.push(`验收状态：${ACCEPT_LABEL[exec.acceptanceStatus] || exec.acceptanceStatus}`);
+    const lines = [h('p', { class: 'wb-accept-line', text: `验收条件：${def.acceptance || '（发布时未填，导入后需补）'}` }),
+      h('p', { class: 'wb-accept-line', text: `验收状态：${ACCEPT_LABEL[exec.acceptanceStatus] || exec.acceptanceStatus}` })];
     for (const r of exec.reviews ?? []) {
       const stale = r.relatedContentRevision !== (def.contentRevision ?? 1);
-      lines.push(`AI 意见 [${REVIEW_LABEL[r.status] || r.status}] 来自 ${r.source}，针对 r${r.relatedContentRevision}`
-        + `${stale ? '（旧修订，仅供参考）' : ''}${r.decidedAt ? `，${fmtDateTime(r.decidedAt)} 已确认` : '，待确认'}`);
+      const line = h('p', { class: `wb-accept-line${stale ? ' wb-review-stale' : ''}` },
+        `AI 意见 [${REVIEW_LABEL[r.status] || r.status}] 来自 ${r.source}，针对 r${r.relatedContentRevision}`
+        + `${stale ? '（旧修订，仅供参考）' : ''}${r.decidedAt ? `，${fmtDateTime(r.decidedAt)} 已确认` : '，待确认'}`
+        + `${stale ? '。不可确认，请对新版重新导入' : ''}`);
+      if (!stale && r.status === 'pending') {
+        for (const [verdict, text] of [['passed', '通过'], ['changes_requested', '要求修改']]) {
+          line.append(h('button', { class: 'wb-btn', type: 'button', text, disabled: !connected,
+            onclick: () => send(def.dispatchKey, 'confirm_ai_review', { reviewId: r.id, verdict }) }));
+        }
+      }
+      lines.push(line);
     }
-    lines.push('注：「完成」只代表本次执行结束，是否达标以验收确认为准；确认按钮在阶段 8 接入。');
-    b.acceptSlot.replaceChildren(...lines.map(t => h('p', { class: 'wb-accept-line', text: t })));
+    lines.push(h('p', { class: 'wb-accept-line', text: '注：「完成」只代表本次执行结束；是否达标以你确认的验收结论为准，旧修订的意见不能确认。' }));
+    b.acceptSlot.replaceChildren(...lines);
   }
 
   function renderFeedback(b, exec, def) {
