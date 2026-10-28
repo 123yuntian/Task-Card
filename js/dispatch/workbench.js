@@ -238,13 +238,34 @@ export function mount(container, { isActive = () => true } = {}) {
     });
     const reviewForm = h('section', { class: 'wb-feedback' }, h('h4', { text: '验收意见' }),
       reviewText, reviewSource, reviewCommit, reviewButton);
+    const questionsSlot = h('div', { class: 'wb-slot wb-questions', hidden: true });
+    const questions = Array.from({ length: 5 }, () => {
+      const text = h('p', { class: 'wb-q-text' });
+      const input = h('textarea', { class: 'wb-input', rows: 3 });
+      const previous = h('p', { class: 'wb-muted', hidden: true });
+      const row = h('div', { hidden: true }, text, input, previous);
+      questionsSlot.append(row);
+      return { row, text, input, previous };
+    });
+    const questionsButton = h('button', { class: 'wb-btn', type: 'button', text: '提交回答' });
+    questionsButton.addEventListener('click', async () => {
+      if (questionsButton.disabled) return;
+      const current = blocks.get(def.dispatchKey).item.definition.questions;
+      const count = Math.min(Array.isArray(current) ? current.length : 0, 5);
+      if (!count) return;
+      const answers = questions.slice(0, count).map(q => q.input.value);
+      questionsButton.disabled = true;
+      try { const r = await send(def.dispatchKey, 'submit_feedback', { answers }); if (r.ok) toast('回答已保存'); }
+      finally { questionsButton.disabled = false; }
+    });
+    questionsSlot.append(questionsButton);
     const fb = buildFeedback(def);
     const activitySlot = h('ul', { class: 'wb-activity' });
     const el = h('details', { class: 'wb-task', open: item.execution.execution !== 'done', 'data-key': def.dispatchKey },
       h('summary', { class: 'wb-task-summary' }, h('span', { class: 'wb-task-title', text: def.title }), badge),
-      stepsSlot, actionsSlot, conflictSlot, acceptSlot, reviewForm, fb.el, h('h4', { text: '最近活动' }), activitySlot,
+      stepsSlot, actionsSlot, conflictSlot, acceptSlot, reviewForm, questionsSlot, fb.el, h('h4', { text: '最近活动' }), activitySlot,
     );
-    return { el, key: def.dispatchKey, badge, stepsSlot, actionsSlot, conflictSlot, acceptSlot, fb, activitySlot, item, order, sig: '', lastExec: '' };
+    return { el, key: def.dispatchKey, badge, stepsSlot, actionsSlot, conflictSlot, acceptSlot, questionsSlot, questions, fb, activitySlot, item, order, sig: '', lastExec: '' };
   }
 
   function buildFeedback(def) {
@@ -382,6 +403,7 @@ export function mount(container, { isActive = () => true } = {}) {
     renderSteps(b, def);
     renderActions(b, item);
     renderAccept(b, item);
+    renderQuestions(b, item);
     renderFeedback(b, exec, def);
     renderActivity(b, exec);
   }
@@ -459,6 +481,22 @@ export function mount(container, { isActive = () => true } = {}) {
     b.acceptSlot.replaceChildren(...lines);
   }
 
+  function renderQuestions(b, item) {
+    const questions = Array.isArray(item.definition.questions) ? item.definition.questions.slice(0, 5) : [];
+    const last = [...(item.execution.feedback ?? [])].reverse().find(fb => Array.isArray(fb.answers));
+    b.questionsSlot.hidden = questions.length === 0;
+    b.questions.forEach((q, i) => {
+      q.row.hidden = i >= questions.length;
+      if (q.row.hidden) return;
+      q.text.textContent = questions[i];
+      q.input.setAttribute('aria-label', questions[i]);
+      const answer = last?.answers[i];
+      q.previous.hidden = typeof answer !== 'string';
+      q.previous.textContent = typeof answer === 'string' ? `上次回答（${fmtDateTime(last.at)}）：${answer}` : '';
+      if (q.input.value === '' && typeof answer === 'string') q.input.value = answer;
+    });
+  }
+
   function renderFeedback(b, exec, def) {
     b.fb.list.replaceChildren(
       ...(exec.feedback ?? []).map(fb => h('li', {},
@@ -466,6 +504,9 @@ export function mount(container, { isActive = () => true } = {}) {
         fb.difficulty != null ? ` 难度 ${fb.difficulty}/5` : '',
         fb.actualMinutes != null ? ` 用时 ${fb.actualMinutes} 分钟` : '',
         fb.text ? h('div', { class: 'wb-fb-text', text: fb.text }) : null,
+        Array.isArray(fb.answers)
+          ? h('div', { class: 'wb-fb-text', text: '验收回答：' + fb.answers.map((a, i) => `${i + 1}. ${a || '（空）'}`).join('　') })
+          : null,
       )),
     );
     if (!(exec.feedback ?? []).length) b.fb.list.append(h('li', { class: 'wb-muted', text: '还没有提交过反馈。' }));
@@ -476,7 +517,7 @@ export function mount(container, { isActive = () => true } = {}) {
     for (const hist of exec.history ?? []) {
       items.push({ at: hist.at, text: OP_LABEL[hist.type] || hist.type, extra: hist.type === 'delay' ? ` +${hist.extendMinutes} 分钟` : '' });
     }
-    for (const fb of exec.feedback ?? []) items.push({ at: fb.at, text: '提交反馈' });
+    for (const fb of exec.feedback ?? []) items.push({ at: fb.at, text: Array.isArray(fb.answers) ? '提交验收回答' : '提交反馈' });
     for (const r of exec.reviews ?? []) items.push({ at: r.importedAt, text: `导入验收意见（r${r.relatedContentRevision}）` });
     items.sort((x, y) => y.at - x.at);
     b.activitySlot.replaceChildren(...items.slice(0, 8).map(it => h('li', {},

@@ -77,6 +77,7 @@ export function validateOperation(op) {
       if (p.difficulty !== undefined && !/^[1-5]$/.test(String(p.difficulty))) errors.push('difficulty 若填必须是 1-5');
       if (p.actualMinutes !== undefined && (!Number.isFinite(p.actualMinutes) || p.actualMinutes < 0)) errors.push('actualMinutes 若填必须是 >=0 数值');
       if (p.text !== undefined && typeof p.text !== 'string') errors.push('text 若填必须是字符串');
+      if (p.answers !== undefined && (!Array.isArray(p.answers) || p.answers.length < 1 || p.answers.length > 5 || !p.answers.every(a => typeof a === 'string'))) errors.push('submit_feedback.payload.answers 必须是与问题同序的字符串数组');
       break;
     default:
       break; // accept/complete/fail/shelve/expire 的目标由 URL :key 决定，payload 可为空

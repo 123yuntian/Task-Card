@@ -200,6 +200,7 @@ export class Repository {
       case 'submit_feedback': {
         const fb = { at: now, operationId: op.operationId };
         if (p.text !== undefined) fb.text = p.text;
+        if (p.answers !== undefined) fb.answers = p.answers;
         if (p.difficulty !== undefined) fb.difficulty = p.difficulty;
         if (p.actualMinutes !== undefined) fb.actualMinutes = p.actualMinutes;
         return { patch: { feedback: [...task.feedback, fb] }, result: { type: 'submit_feedback' } };

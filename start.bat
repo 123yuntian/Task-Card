@@ -6,19 +6,33 @@ set PORT=8317
 set NODE_EXE="C:\Program Files\nodejs\node.exe"
 set URL=http://127.0.0.1:%PORT%/index.html
 
-rem --- check if the port is already taken ---
+rem --- is the port already taken? ---
 netstat -ano | findstr /R /C:":%PORT% .*LISTENING" >nul
-if %errorlevel%==0 (
-    echo.
-    echo [start.bat] Port %PORT% is already in use.
-    echo Most likely a previous server window is still open.
-    echo Close that window, or kill node.exe in Task Manager, then try again.
-    echo.
-    pause
-    exit /b 1
-)
+if not %errorlevel%==0 goto :start_server
 
-rem --- launch the static server in its own window so this script can continue ---
+rem --- taken: is it our own server? ask it who it is ---
+curl -s --max-time 2 http://127.0.0.1:%PORT%/api/health | findstr /C:"task-card-dispatch" >nul
+if %errorlevel%==0 goto :already_running
+
+echo.
+echo [start.bat] Port %PORT% is in use by something else.
+echo It did not answer as Task Card. Close that program, then run this again.
+echo.
+pause
+exit /b 1
+
+:already_running
+echo.
+echo [start.bat] Task Card server is ALREADY running on port %PORT%.
+echo Opening the browser now. Do NOT kill node.exe.
+echo Tip: press Ctrl+F5 in the browser if the page looks old.
+echo.
+start "" "%URL%"
+timeout /t 3 >nul
+exit /b 0
+
+:start_server
+rem --- launch the server in its own window so this script can continue ---
 start "TaskCard server on %PORT%" %NODE_EXE% server\main.mjs
 
 rem --- give the server a moment to boot, then open the browser ---
