@@ -47,6 +47,7 @@ const STATIC_ROUTES = new Map([
   ['/js/store.js', 'js/store.js'],
   ['/js/storage.js', 'js/storage.js'],
   ['/js/render.js', 'js/render.js'],
+  ['/js/router.js', 'js/router.js'],
   ['/js/timer.js', 'js/timer.js'],
   ['/js/dispatch/api.js', 'js/dispatch/api.js'],
   ['/js/dispatch/client-store.js', 'js/dispatch/client-store.js'],

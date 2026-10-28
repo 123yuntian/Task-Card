@@ -716,3 +716,263 @@ textarea.wb-input { width: 100%; resize: vertical; }
     #layout { grid-template-columns: 1fr; }
     #side-col { position: static; }
 }
+
+/* ================= P1 骨架：左侧边栏 + 撑满视口 + 空态（2026-10-28） ================= */
+
+#app-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 180px;
+    height: 100vh;
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(18, 20, 26, 0.55);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    z-index: 10;
+}
+
+.side-brand {
+    color: #fff;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    padding: 4px 10px 14px;
+}
+
+.side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.side-nav a,
+.side-nav .side-disabled {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.78);
+    transition: background 0.15s, color 0.15s;
+}
+
+.side-nav a:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.side-nav .side-disabled {
+    color: rgba(255, 255, 255, 0.32);
+    cursor: not-allowed;
+}
+
+.side-nav .side-disabled em {
+    font-style: normal;
+    font-size: 11px;
+    margin-left: 6px;
+    opacity: 0.8;
+}
+
+.side-foot {
+    margin-top: auto;
+    padding: 0 10px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* 给固定侧栏让位（覆盖 body 的 padding 简写里的 left） */
+body {
+    padding-left: 200px;
+}
+
+/* 骨架撑满视口：不再"只有上半有东西" */
+#layout {
+    align-items: stretch;
+    min-height: calc(100vh - 120px);
+}
+
+#main-col,
+#side-col {
+    min-height: calc(100vh - 160px);
+}
+
+/* 右栏三块统一成一列面板，不再各自 hug 成小方块 */
+#side-col .card-section,
+#side-col #failed-section {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 空态：主看板无任务时给一块占位卡，而不是一行灰字 */
+#task-container > .empty {
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 1px dashed rgba(255, 255, 255, 0.35);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 24px;
+}
+
+#task-container > .empty::after {
+    content: '点右上角「今日派活」，把今天的任务接进来';
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* 锚点跳转别被固定侧栏和顶部挡住 */
+#layout,
+#done-section,
+#failed-section {
+    scroll-margin-top: 20px;
+}
+
+/* 窄屏：收起侧栏，内容归位，两栏堆叠 */
+@media (max-width: 1200px) {
+    #app-sidebar { display: none; }
+    body { padding-left: 20px; }
+}
+
+/* ================= 视图切换（2026-10-28 P1′）：真导航，不是锚点 ================= */
+
+body {
+    overflow: hidden; /* 页面不整页滚动，滚动发生在 #view-host 内部 */
+}
+
+#view-host {
+    height: calc(100vh - 118px);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.view[hidden] {
+    display: none;
+}
+
+.view {
+    padding-bottom: 24px;
+}
+
+/* 侧栏导航：active 态用左侧高亮条 + 底色，像"当前所在的面板" */
+.side-nav a.active {
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    box-shadow: inset 3px 0 0 #6ea8ff;
+}
+
+/* 顶部「今日派活」改成链接后的样式（原来是按钮） */
+.btn-dispatch {
+    display: inline-block;
+    padding: 8px 18px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn-dispatch:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+/* 今日派活：内嵌整个工作台 */
+#view-today iframe {
+    width: 100%;
+    height: calc(100vh - 190px);
+    border: 0;
+    border-radius: 10px;
+    background: #fff;
+}
+
+/* 占位视图与说明卡 */
+.view-card {
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 12px;
+    padding: 22px 26px;
+    max-width: 720px;
+    color: #2b2b2b;
+}
+
+.view-card h2 {
+    color: #1f2430;
+    font-size: 18px;
+    text-shadow: none;
+    margin-bottom: 12px;
+}
+
+.view-card p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #444;
+    margin-bottom: 10px;
+}
+
+.view-note {
+    font-size: 12.5px !important;
+    color: #8a8f98 !important;
+    border-top: 1px solid #e6e8ec;
+    padding-top: 10px;
+    margin-top: 14px;
+}
+
+.view-list {
+    padding-left: 18px;
+    font-size: 14px;
+    line-height: 1.9;
+    color: #444;
+}
+
+/* 窄屏：侧栏变顶部横条，页面恢复整页滚动 */
+@media (max-width: 1200px) {
+    body {
+        overflow: auto;
+        padding-left: 20px;
+    }
+
+    #app-sidebar {
+        position: static;
+        display: flex;            /* 覆盖 P1 里的 display:none —— 窄屏是"变横条"，不是"消失" */
+        width: auto;
+        height: auto;
+        flex-direction: row;
+        align-items: center;
+        gap: 2px;
+        margin-bottom: 14px;
+        border-radius: 10px;
+        padding: 10px 12px;
+    }
+
+    .side-brand {
+        padding: 0 10px 0 4px;
+    }
+
+    .side-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .side-foot {
+        display: none;
+    }
+
+    #view-host {
+        height: auto;
+        overflow: visible;
+    }
+
+    #view-today iframe {
+        height: 80vh;
+    }
+}

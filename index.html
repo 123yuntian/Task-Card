@@ -7,36 +7,88 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- 左侧边栏：真导航（切视图），不是页内锚点。视图切换由 js/router.js 负责 -->
+    <aside id="app-sidebar">
+        <div class="side-brand">Task Card</div>
+        <nav class="side-nav">
+            <a href="#/board" data-view="board">看板</a>
+            <a href="#/today" data-view="today">今日派活</a>
+            <a href="#/history" data-view="history">历史</a>
+            <a href="#/snapshots" data-view="snapshots">快照</a>
+            <a href="#/settings" data-view="settings">设置</a>
+        </nav>
+        <div class="side-foot">本地 · 127.0.0.1:8317</div>
+    </aside>
+
     <h1>我的任务卡</h1>
 
-    <!-- 顶部工具栏：数据导出 + 快捷键提示 + 今日派活入口 -->
+    <!-- 顶部工具栏：数据导出 + 今日派活入口 + 快捷键提示 -->
     <div id="toolbar">
         <button class="btn-export" data-action="export">导出数据</button>
-        <button type="button" id="btn-dispatch" class="btn-dispatch" aria-expanded="false" aria-controls="dispatch-panel">今日派活</button>
+        <a class="btn-dispatch" href="#/today">今日派活</a>
         <span class="shortcut-hint">快捷键：鼠标悬停选中卡片后，A 接取 / C 完成 / D 延时</span>
     </div>
 
-    <!-- 今日派活面板：挂在 body 直下的独立容器（绝不进 #task-container / #failed-list，
-         render.js 整块重建看板时面板 DOM 与输入草稿不受影响） -->
+    <!-- 旧的内联派活面板：已停用（改由 #/today 视图承载），保留容器避免历史引用出错 -->
     <section id="dispatch-panel" hidden></section>
 
-    <div id="layout">
-        <main id="main-col">
-            <div id="summary-bar">今日概要：—</div>
-            <!-- 主看板：available / accepted 任务 -->
-            <div id="task-container"></div>
-        </main>
-        <aside id="side-col">
-            <details id="done-section" class="card-section" open><summary>已完成（<span id="done-count">0</span>）</summary><div id="done-list"></div></details>
-            <details id="archived-section" class="card-section"><summary>已归档（<span id="archived-count">0</span>）</summary><div id="archived-list"></div></details>
+    <!-- 视图宿主：一次只显示一个视图，切换逻辑在 js/router.js -->
+    <main id="view-host">
+        <!-- 看板（默认视图）：内容与之前完全一致，只是被包了一层 -->
+        <section class="view" id="view-board">
+            <div id="layout">
+                <div id="main-col">
+                    <div id="summary-bar">今日概要：—</div>
+                    <!-- 主看板：available / accepted 任务 -->
+                    <div id="task-container"></div>
+                </div>
+                <aside id="side-col">
+                    <details id="done-section" class="card-section" open><summary>已完成（<span id="done-count">0</span>）</summary><div id="done-list"></div></details>
+                    <details id="archived-section" class="card-section"><summary>已归档（<span id="archived-count">0</span>）</summary><div id="archived-list"></div></details>
 
-            <!-- 失败任务栏：failed / shelved 任务 -->
-            <section id="failed-section">
-                <h2>失败任务栏</h2>
-                <div id="failed-list"></div>
-            </section>
-        </aside>
-    </div>
+                    <!-- 失败任务栏：failed / shelved 任务 -->
+                    <section id="failed-section">
+                        <h2>失败任务栏</h2>
+                        <div id="failed-list"></div>
+                    </section>
+                </aside>
+            </div>
+        </section>
+
+        <!-- 今日派活：直接嵌入原页面，工作台零改动 -->
+        <section class="view" id="view-today" hidden>
+            <iframe src="/today.html" title="今日派活工作台"></iframe>
+        </section>
+
+        <section class="view" id="view-history" hidden>
+            <div class="view-card">
+                <h2>历史与回溯</h2>
+                <p>这里将按日期列出每次操作（接取 / 完成 / 失败 / 验收），点开可看改动详情，并支持回溯到某一步。</p>
+                <p class="view-note">状态：未开工 · 排期 10/30 之后（依赖操作历史的存储层）</p>
+            </div>
+        </section>
+
+        <section class="view" id="view-snapshots" hidden>
+            <div class="view-card">
+                <h2>快照</h2>
+                <p>历史快照会把每次「存现场」自动留档（7 天且不在最近 20 份内才清理），收藏快照可改名、永不自动删除。</p>
+                <p class="view-note">状态：未开工 · 排期 10/30（沙箱工具侧，不动产品代码）</p>
+            </div>
+        </section>
+
+        <section class="view" id="view-settings" hidden>
+            <div class="view-card">
+                <h2>设置</h2>
+                <ul class="view-list">
+                    <li>数据方式：浏览器 localStorage（看板）+ 本地服务 dispatch-data（派活执行状态）</li>
+                    <li>本地服务：127.0.0.1:8317 · 只绑本机 · 写接口需会话令牌</li>
+                    <li>数据结构版本：v4（v1 / v2 / v3 会在读取时自动迁移）</li>
+                    <li>测试沙箱：桌面 TaskCard-sandbox.bat（8320 页面 / 8329 控制台，真实数据只读复制）</li>
+                </ul>
+                <p class="view-note">设置项暂为只读信息，可配置化排期未定</p>
+            </div>
+        </section>
+    </main>
 
     <!-- 模态框挂载点（由 render.js 动态填充） -->
     <div id="modal-root"></div>
@@ -45,10 +97,6 @@
     <div id="toast"></div>
 
     <script type="module" src="js/app.js"></script>
-    <!-- 阶段6前半：只接线入口与挂载，数据与交互全部复用 today.html 同一套（js/dispatch/*） -->
-    <script type="module">
-        import { setupPanel } from './js/dispatch/workbench.js';
-        setupPanel(document.getElementById('btn-dispatch'), document.getElementById('dispatch-panel'));
-    </script>
+    <script type="module" src="js/router.js"></script>
 </body>
 </html>
