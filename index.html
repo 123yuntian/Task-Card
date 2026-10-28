@@ -20,8 +20,11 @@
          render.js 整块重建看板时面板 DOM 与输入草稿不受影响） -->
     <section id="dispatch-panel" hidden></section>
 
-    <!-- 主看板：available / accepted / done 任务 -->
+    <!-- 主看板：available / accepted 任务 -->
     <div id="task-container"></div>
+
+    <details id="done-section" class="card-section"><summary>已完成（<span id="done-count">0</span>）</summary><div id="done-list"></div></details>
+    <details id="archived-section" class="card-section"><summary>已归档（<span id="archived-count">0</span>）</summary><div id="archived-list"></div></details>
 
     <!-- 失败任务栏：failed / shelved 任务 -->
     <section id="failed-section">

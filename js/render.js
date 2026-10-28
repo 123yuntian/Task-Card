@@ -24,7 +24,7 @@ const PRIORITY = {
 };
 
 /** DOM 挂载点引用（init 时缓存） */
-let boardEl, failedEl, modalRoot, toastEl;
+let boardEl, failedEl, doneEl, archivedEl, doneCountEl, archivedCountEl, modalRoot, toastEl;
 
 /** 当前"选中"的任务 id（鼠标悬停或点击卡片，供快捷键使用） */
 let selectedId = null;
@@ -47,6 +47,10 @@ let toastTimer = null;
 export function init() {
     boardEl   = document.getElementById('task-container');
     failedEl  = document.getElementById('failed-list');
+    doneEl = document.getElementById('done-list');
+    archivedEl = document.getElementById('archived-list');
+    doneCountEl = document.getElementById('done-count');
+    archivedCountEl = document.getElementById('archived-count');
     modalRoot = document.getElementById('modal-root');
     toastEl   = document.getElementById('toast');
 
@@ -102,21 +106,27 @@ function formatStamp(ts) {
 
 /* ================= 渲染 ================= */
 
-/** 全量渲染：主看板（available/accepted/done）+ 失败任务栏（failed/shelved） */
+/** 全量渲染任务分区 */
 function renderAll() {
     const tasks = store.getTasks();
-    const active = tasks.filter(t => ['available', 'accepted', 'done'].includes(t.status));
-    const failed = tasks.filter(t => ['failed', 'shelved'].includes(t.status));
+    const active = tasks.filter(t => !t.archived && ['available', 'accepted'].includes(t.status));
+    const failed = tasks.filter(t => !t.archived && ['failed', 'shelved'].includes(t.status));
+    const done = tasks.filter(t => !t.archived && t.status === 'done');
+    const archived = tasks.filter(t => t.archived);
 
-    boardEl.innerHTML = active.map(cardHTML).join('') || '<p class="empty">暂无任务</p>';
+    boardEl.innerHTML = active.map(t => cardHTML(t)).join('') || '<p class="empty">暂无任务</p>';
     failedEl.innerHTML = failed.map(failedCardHTML).join('') || '<p class="empty">暂无失败任务</p>';
+    doneEl.innerHTML = done.map(doneHTML).join('') || '<p class="empty">暂无已完成任务</p>';
+    archivedEl.innerHTML = archived.map(archivedHTML).join('') || '<p class="empty">暂无已归档任务</p>';
+    doneCountEl.textContent = done.length;
+    archivedCountEl.textContent = archived.length;
 
     // 重建 DOM 后立即刷新一次倒计时，避免闪烁
     updateCountdowns(Date.now());
 }
 
 /** 主看板任务卡片 HTML */
-function cardHTML(task) {
+function cardHTML(task, extraClass = '', buttons = buttonsHTML(task)) {
     const p = PRIORITY[task.priority] || PRIORITY.medium;
     const blockers = store.getBlockers(task);
     const blocked = task.status === 'available' && blockers.length > 0;
@@ -124,7 +134,7 @@ function cardHTML(task) {
     const pomodoros = Math.max(1, Math.ceil(task.suggestedTime / 25));
 
     return `
-    <div class="task-card status-${task.status}${selectedId === task.id ? ' selected' : ''}${blocked ? ' blocked' : ''}" data-id="${task.id}">
+    <div class="task-card status-${task.status}${extraClass ? ` ${extraClass}` : ''}${selectedId === task.id ? ' selected' : ''}${blocked ? ' blocked' : ''}" data-id="${task.id}">
         <span class="priority-badge ${p.cls}" title="优先级">${p.text}</span>
         <div class="goal">${esc(task.goal)}</div>
         <div class="section">
@@ -145,8 +155,21 @@ function cardHTML(task) {
             <span class="time">建议 ${task.suggestedTime} 分钟</span>
             <span class="pomodoro">🍅 x${pomodoros}</span>
         </div>
-        <div class="buttons">${buttonsHTML(task)}</div>
+        <div class="buttons">${buttons}</div>
     </div>`;
+}
+
+function doneHTML(task) {
+    return cardHTML(task, 'done-card', `
+        <button class="btn-reaccept" data-action="rework" data-id="${task.id}">返工</button>
+        <button data-action="archive" data-id="${task.id}">归档</button>
+        <button data-action="delete" data-id="${task.id}">删除</button>`);
+}
+
+function archivedHTML(task) {
+    return cardHTML(task, 'archived-card', `
+        <button data-action="unarchive" data-id="${task.id}">取消归档</button>
+        <button data-action="delete" data-id="${task.id}">删除</button>`);
 }
 
 /** 按状态生成按钮区：倒计时显示在原"接取"按钮位置，点击即可延时 */
@@ -225,7 +248,21 @@ function handleClick(e) {
             openShelveModal(id);
             break;
         case 'reaccept':
+        case 'rework':
             store.reacceptTask(id);
+            break;
+        case 'archive':
+            if (selectedId === id) selectedId = null;
+            store.archiveTask(id);
+            break;
+        case 'unarchive':
+            store.unarchiveTask(id);
+            break;
+        case 'delete':
+            if (confirm('确定删除这张任务卡吗？')) {
+                if (selectedId === id) selectedId = null;
+                store.deleteTask(id);
+            }
             break;
         case 'export':
             exportJSON();

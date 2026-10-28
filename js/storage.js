@@ -16,7 +16,7 @@ const STORAGE_KEY = 'taskCardData';
 const LEGACY_KEY = 'taskStates';
 
 /** 当前数据结构版本号。未来变更数据结构时必须 +1 并在 migrate() 中补充分支 */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** T-3 只读锁：读到高于本程序支持的数据版本时置位，saveData 从此拒绝一切写入 */
 let higherVersionLocked = false;
@@ -87,7 +87,7 @@ export function saveData(data) {
 function migrate(oldData) {
     // v1 -> v2 示例：v1 没有 version 字段，任务直接挂在 tasks 上
     if (oldData && Array.isArray(oldData.tasks) && !oldData.version) {
-        console.info('[storage] 检测到 v1 数据，迁移到 v2');
+        console.info('[storage] 检测到 v1 数据，迁移到 v' + SCHEMA_VERSION);
         return {
             version: SCHEMA_VERSION,
             tasks: oldData.tasks,
@@ -97,7 +97,7 @@ function migrate(oldData) {
     // v2 -> v3（场3阶段6，D-009）：任务新增四个派活字段。已有字段一律不动，只补缺省值；
     // 合法 v2 数据绝不走下面的「无法识别」分支，绝不返回 null、绝不丢 tasks
     if (oldData && oldData.version === 2 && Array.isArray(oldData.tasks)) {
-        console.info('[storage] 检测到 v2 数据，迁移到 v3');
+        console.info('[storage] 检测到 v2 数据，迁移到 v' + SCHEMA_VERSION);
         return {
             version: SCHEMA_VERSION,
             tasks: oldData.tasks.map(t => ({
@@ -109,6 +109,15 @@ function migrate(oldData) {
             })),
             lastResetDate: oldData.lastResetDate
         };
+    }
+    if (oldData && oldData.version === 3 && Array.isArray(oldData.tasks)) {
+        const migrated = {
+            version: SCHEMA_VERSION,
+            tasks: oldData.tasks.map(t => ({ ...t, archived: t.archived === true })),
+            lastResetDate: oldData.lastResetDate
+        };
+        saveData(migrated);
+        return migrated;
     }
     // 无法识别的结构：放弃迁移，让调用方用默认数据重建
     console.warn('[storage] 数据版本无法识别，已丢弃：', oldData && oldData.version);

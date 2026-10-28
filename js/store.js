@@ -110,6 +110,7 @@ function normalizeTask(t) {
         createdAt: t.createdAt || Date.now(),
         acceptedAt: t.acceptedAt || null,
         completedAt: t.completedAt || null,
+        archived: t.archived === true,
         failedAt: t.failedAt || null,
         // 派活接入字段（场3阶段6）：非派活任务为 null。不能是 undefined，JSON.stringify 会把 undefined 键丢掉
         dispatchKey: t.dispatchKey || null, // 跨日稳定逻辑键
@@ -233,6 +234,22 @@ export function updateTask(id, patch) {
     return true;
 }
 
+export function archiveTask(id) {
+    const task = getTask(id);
+    if (!task) return false;
+    task.archived = true;
+    persistAndEmit({ type: 'archive', id });
+    return true;
+}
+
+export function unarchiveTask(id) {
+    const task = getTask(id);
+    if (!task) return false;
+    task.archived = false;
+    persistAndEmit({ type: 'unarchive', id });
+    return true;
+}
+
 /** 删除任务；同时把该 id 从其他任务的 blockedBy 中移除，避免悬空依赖 */
 export function deleteTask(id) {
     const idx = state.tasks.findIndex(t => t.id === id);
@@ -342,11 +359,12 @@ export function applyTaskCommand(cmd) {
         }
         case 'reaccept': {
             // render 的 reacceptTask 也从这条漏斗走（用户拍板：不许五个进漏斗一个走侧门）
-            if (!['failed', 'shelved'].includes(task.status)) {
+            if (!['failed', 'shelved', 'done'].includes(task.status)) {
                 return { ok: false, saved: false, taskId: task.id, reason: 'invalid-state' };
             }
             task.status = 'available';
             task.deadline = null;
+            task.completedAt = null;
             task.failedAt = null;
             task.shelveReason = '';
             const saved = persistAndEmit({ type: 'reaccept', id: task.id });
