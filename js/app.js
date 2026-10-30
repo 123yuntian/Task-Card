@@ -7,7 +7,8 @@
 import * as store from './store.js';
 import * as timer from './timer.js';
 import * as render from './render.js';
-import { isSchemaLocked } from './storage.js';
+import { isSchemaLocked, hydrateFromCloud, SCHEMA_VERSION } from './storage.js';
+import { pushState } from './cloud.js';
 
 function bootstrap() {
     store.init();   // 1. 加载持久化数据 / 播种默认任务 / 迁移旧数据
@@ -15,6 +16,31 @@ function bootstrap() {
     if (isSchemaLocked()) mountSchemaLockBanner();
     timer.start();  // 2. 启动倒计时引擎（每秒过期判定 + 每日重置检查）
     render.init();  // 3. 订阅事件并渲染视图、绑定事件委托
+    syncFromCloud(); // 4. 后台拉云端数据（不阻塞首屏，失败静默）
+}
+
+/**
+ * 后台同步：先让本机数据秒开，再悄悄拉云端。
+ * 拉到就覆盖并重绘；拉不到（首次使用 / 断网 / 云服务暂停）就当无事发生。
+ */
+async function syncFromCloud() {
+    try {
+        const remote = await hydrateFromCloud();
+        if (remote) {
+            if (store.applyRemote(remote)) {
+                console.info('[cloud] 已同步云端数据，共 ' + remote.tasks.length + ' 条任务');
+            }
+            return;
+        }
+        // 云端还没有数据 → 把本机这份推上去（首次迁移，只发生一次）
+        const local = store.getSnapshot();
+        if (local && Array.isArray(local.tasks) && local.tasks.length) {
+            const ok = await pushState({ version: SCHEMA_VERSION, ...local });
+            if (ok) console.info('[cloud] 首次上传本机数据，共 ' + local.tasks.length + ' 条任务');
+        }
+    } catch (err) {
+        console.warn('[cloud] 启动同步失败，继续使用本机数据：', err);
+    }
 }
 
 /** T-3 守卫的用户可见提示：解释界面为什么只读、怎么恢复 */

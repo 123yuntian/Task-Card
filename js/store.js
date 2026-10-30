@@ -121,8 +121,8 @@ function normalizeTask(t) {
 }
 
 /** 持久化当前状态；返回 saveData 的布尔结果（T-3 只读锁 / 配额超限时为 false） */
-function persist() {
-    return saveData({ tasks: state.tasks, lastResetDate: state.lastResetDate });
+function persist(opts) {
+    return saveData({ tasks: state.tasks, lastResetDate: state.lastResetDate }, opts);
 }
 
 /** 持久化并广播变化（所有写操作的统一出口）；saved 随事件传出，供调用方提示「本地保存失败」 */
@@ -147,10 +147,38 @@ export function init() {
         state.tasks = DEFAULT_TASKS.map(normalizeTask);
         state.lastResetDate = todayStr();
         applyLegacyStates();
-        persist();
+        // noCloud：首次播种只落本机。否则新设备（手机）第一次打开，
+        // 会拿这 3 条默认任务把云端已有的真实数据覆盖掉。
+        persist({ noCloud: true });
     }
 
     dailyResetIfNeeded();
+}
+
+/**
+ * 采用云端数据覆盖当前状态（由 app.js 在启动后异步调用）。
+ *
+ * 不走 persist()：云端刚拉下来的数据不必立刻推回去，省一次往返。
+ * 但仍会 emit('change')，让界面重绘成云端内容。
+ *
+ * @param {{tasks:Array, lastResetDate:string}} data
+ * @returns {boolean} 是否采用
+ */
+export function applyRemote(data) {
+    if (!data || !Array.isArray(data.tasks)) return false;
+    state.tasks = data.tasks.map(normalizeTask);
+    state.lastResetDate = data.lastResetDate || todayStr();
+    dailyResetIfNeeded();
+    emit('change', { type: 'remote-sync', saved: true });
+    return true;
+}
+
+/**
+ * 取当前状态的浅拷贝（供 app.js 做"首次上传到云端"用）。
+ * @returns {{tasks:Array, lastResetDate:string}}
+ */
+export function getSnapshot() {
+    return { tasks: state.tasks, lastResetDate: state.lastResetDate };
 }
 
 /**

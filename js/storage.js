@@ -12,6 +12,9 @@
 /** 新版数据的存储键名 */
 const STORAGE_KEY = 'taskCardData';
 
+// 云端同步：只在"保存"和"启动"时用到，失败不影响本机
+import { pushState, pullState } from './cloud.js';
+
 /** 旧版（重构前）数据的存储键名，用于一次性迁移 */
 const LEGACY_KEY = 'taskStates';
 
@@ -61,7 +64,7 @@ export function loadData() {
  * @param {{ tasks:Array, lastResetDate:string }} data
  * @returns {boolean} 是否写入成功
  */
-export function saveData(data) {
+export function saveData(data, opts = {}) {
     if (higherVersionLocked) {
         // 只读保护（T-3）：返回 false 让上层知道没保存，而不是静默丢弃或覆盖
         console.error('[storage] 只读保护中（数据版本高于本程序），已拒绝写入。');
@@ -70,6 +73,9 @@ export function saveData(data) {
     try {
         const payload = { version: SCHEMA_VERSION, ...data };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        // 后台推送到云端：不 await、不上抛，失败时本机照常工作（断网 = 纯本地模式）
+        // opts.noCloud：首次播种默认任务时禁止推送，否则新设备一打开就会用空数据覆盖云端
+        if (!opts.noCloud) pushState(payload).catch(() => {});
         return true;
     } catch (err) {
         // 常见原因：隐私模式 / 存储空间超限（QuotaExceededError）
@@ -145,5 +151,39 @@ export function clearLegacy() {
         localStorage.removeItem(LEGACY_KEY);
     } catch (err) {
         console.error('[storage] 清除旧版数据失败：', err);
+    }
+}
+
+/**
+ * 启动时从云端拉一次，取到数据就写入本机缓存。
+ *
+ * 设计：只负责"取回来并落盘"，是否采用由调用方（app.js）决定。
+ * 云端没记录 / 连不上 / 版本不兼容时返回 null，调用方继续用本机数据 —— 断网照常能用。
+ *
+ * @returns {Promise<{version:number,tasks:Array,lastResetDate:string}|null>}
+ */
+export async function hydrateFromCloud() {
+    const remote = await pullState();
+    if (!remote) return null;
+
+    // 版本守卫：云端数据比本程序新时不采用，避免用旧程序写坏新数据
+    if (typeof remote.version === 'number' && remote.version > SCHEMA_VERSION) {
+        console.warn('[storage] 云端数据是 v' + remote.version + '，本程序只到 v' + SCHEMA_VERSION + '，已忽略');
+        return null;
+    }
+    if (!Array.isArray(remote.tasks)) return null;
+
+    // 直接落盘（不经过 saveData，避免"刚拉下来又推回去"的无谓往返）
+    try {
+        const payload = {
+            version: SCHEMA_VERSION,
+            tasks: remote.tasks,
+            lastResetDate: remote.lastResetDate || null
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        return payload;
+    } catch (err) {
+        console.error('[storage] 云端数据写入本机缓存失败：', err);
+        return null;
     }
 }

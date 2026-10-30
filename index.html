@@ -96,6 +96,10 @@
     <!-- 轻提示 toast -->
     <div id="toast"></div>
 
+    <!-- 云服务 SDK（本地内置版，不依赖 CDN：cdn.jsdelivr.net 在国内访问不通） -->
+    <script src="js/vendor/workbuddy-cloud.global.js"
+            onerror="console.warn('[cloud] SDK 加载失败，本次进入纯本地模式')"></script>
+
     <script type="module" src="js/app.js"></script>
     <script type="module" src="js/router.js"></script>
 </body>
