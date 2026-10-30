@@ -8,7 +8,7 @@ import * as store from './store.js';
 import * as timer from './timer.js';
 import * as render from './render.js';
 import { isSchemaLocked, hydrateFromCloud, SCHEMA_VERSION } from './storage.js';
-import { pushState } from './cloud.js';
+import { pushState, pullState } from './cloud.js';
 
 function bootstrap() {
     store.init();   // 1. 加载持久化数据 / 播种默认任务 / 迁移旧数据
@@ -17,6 +17,30 @@ function bootstrap() {
     timer.start();  // 2. 启动倒计时引擎（每秒过期判定 + 每日重置检查）
     render.init();  // 3. 订阅事件并渲染视图、绑定事件委托
     syncFromCloud(); // 4. 后台拉云端数据（不阻塞首屏，失败静默）
+    watchVisibility(); // 5. 切回页面时同步一次（见函数说明）
+}
+
+/**
+ * 切回页面时同步一次。
+ *
+ * 为什么不用定时轮询：云服务按调用次数扣资源点，20 秒轮询一个月约 13 万次，
+ * 免费额度只有 1 万点，会直接把额度烧光。
+ *
+ * 改成监听可见性变化：你在对话里派完活，切回浏览器标签就自动更新，
+ * 一天最多几十次请求，几乎不耗额度。
+ */
+function watchVisibility() {
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState !== 'visible') return;
+        try {
+            const remote = await pullState();
+            if (!remote || !Array.isArray(remote.tasks)) return;
+            const added = store.mergeRemoteTasks(remote.tasks);
+            if (added) console.info('[cloud] 切回页面，新增 ' + added + ' 条任务');
+        } catch (err) {
+            // 静默：同步失败不打扰正在用的用户
+        }
+    });
 }
 
 /**

@@ -182,6 +182,28 @@ export function getSnapshot() {
 }
 
 /**
+ * 合并云端新增的任务 —— 只追加本地没有的 id，绝不覆盖本地已有任务的状态。
+ *
+ * 用途：页面开着时的定时轮询。让"在 WorkBuddy 对话里派的新活"不刷新也能出现在看板上。
+ * 为什么不做全量覆盖：本地可能正在进行倒计时（accepted），云端那份可能是几分钟前的，
+ * 全量覆盖会把倒计时重置或让状态倒退。
+ *
+ * @param {Array} remoteTasks 云端任务数组
+ * @returns {number} 实际追加的条数
+ */
+export function mergeRemoteTasks(remoteTasks) {
+    if (!Array.isArray(remoteTasks) || !remoteTasks.length) return 0;
+    const ids = new Set(state.tasks.map(t => t.id));
+    const incoming = remoteTasks
+        .filter(t => t && t.id && !ids.has(t.id))
+        .map(normalizeTask);
+    if (!incoming.length) return 0;
+    state.tasks.push(...incoming);
+    persistAndEmit({ type: 'remote-merge', added: incoming.length });
+    return incoming.length;
+}
+
+/**
  * 一次性迁移重构前旧版数据（localStorage 键 taskStates）。
  * 旧 id 1/2/3 按顺序映射到新 id t1/t2/t3：
  *   completed   -> done
