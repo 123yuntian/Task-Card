@@ -11,8 +11,34 @@
 
     <!-- 固定入口：日期由服务端按 Asia/Shanghai 决定，客户端从不猜"最近一天" -->
     <div id="today-nav">
-        <a href="index.html">← 回任务卡看板</a>
+        <!-- target="_top"：这个页面会被 index.html 的 #/today 视图用 iframe 嵌着，
+             静态兜底也要跳最外层，不能跳进 iframe 自己（否则套娃）。JS 正常时走下面那段。 -->
+        <a href="index.html" id="back-to-board" target="_top">← 回任务卡看板</a>
     </div>
+
+    <script>
+    // 这个页面有两种打开方式，返回动作必须分开处理：
+    //  ① 独立窗口（直接访问 /today.html）→ 就正常跳到 index.html
+    //  ② 被 index.html 的 #/today 视图用 <iframe> 嵌着 → 绝对不能跳 index.html，
+    //     否则 iframe 里会长出一个完整的任务卡；再点它里面的「今日派活」又会嵌一层 iframe，
+    //     点一次多一层，这就是"任务卡套任务卡"的来历。
+    //     这种情况改成通知外层把 hash 切回 #/board，只换视图、不重载页面。
+    (function () {
+        var back = document.getElementById('back-to-board');
+        if (!back) return;
+        if (window.parent === window) return;   // 独立打开：保持默认跳转
+
+        back.addEventListener('click', function (e) {
+            e.preventDefault();
+            try {
+                window.parent.location.hash = '#/board';
+            } catch (err) {
+                // 同源项目正常不会走到这里；真跨域了也不要跳转（跳了就是套娃）
+                console.warn('[today] 无法通知外层切视图：', err);
+            }
+        });
+    })();
+    </script>
 
     <!-- 工作台挂载点：独立容器，js/render.js 不会碰它 -->
     <main id="app"></main>
