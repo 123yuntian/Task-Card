@@ -22,6 +22,10 @@ echo [2/3] 同步 js 目录（含 vendor 里的 SDK）...
 if exist "%DST%\js" rmdir /S /Q "%DST%\js"
 xcopy /E /I /Q "%SRC%js" "%DST%\js" >nul
 
+copy /Y "%SRC%manifest.webmanifest" "%DST%\" >nul
+if exist "%DST%\assets" rmdir /S /Q "%DST%\assets"
+xcopy /E /I /Q "%SRC%assets" "%DST%\assets" >nul
+
 echo [3/3] 检查是否混入私人数据...
 dir /B "%DST%\dispatch-data" >nul 2>&1
 if %errorlevel%==0 (
