@@ -976,3 +976,73 @@ body {
         height: 80vh;
     }
 }
+
+/* ================= 手机安全区：避开刘海 / 底部横条（2026-11-01） =================
+   只写内边距；没有安全区（env 取 0px）时，取值与原有值完全一致，桌面端零变化。
+   body 左内边距在宽屏是 200px（给固定侧栏让位），所以「左右 20px」只在窄屏段生效。 */
+body {
+    padding-top: max(20px, env(safe-area-inset-top, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 1200px) {
+    body {
+        padding-left: max(20px, env(safe-area-inset-left, 0px));
+    }
+}
+
+/* 固定侧栏只在宽屏存在：底部避让横条，左侧避让横屏刘海 */
+@media (min-width: 1201px) {
+    #app-sidebar {
+        padding-top: max(18px, env(safe-area-inset-top, 0px));
+        padding-left: max(14px, env(safe-area-inset-left, 0px));
+        padding-bottom: max(18px, env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* ================= 手机触控适配（≤640px，2026-11-01） =================
+   只放大触控目标与间距，不缩字号、不隐藏任何功能；小屏允许换行变高。 */
+@media (max-width: 640px) {
+    /* 所有可点元素：最小 44×44 */
+    button,
+    a,
+    summary {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* 行内盒不认 min-height：改成可垂直居中的盒（外观不变，只是撑高） */
+    .btn-dispatch,
+    .side-nav a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* summary 保留折叠三角：只补上下内边距，让文字落在 44px 高的盒中间 */
+    summary {
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    /* 相邻可点元素间距 ≥ 8px（原侧栏导航是 4px） */
+    .side-nav {
+        gap: 8px;
+    }
+
+    /* 顶部两个可点元素本来就隔 15px；限高的小屏允许换行，避免横向溢出 */
+    #toolbar {
+        flex-wrap: wrap;
+    }
+
+    /* 顶部横条放不下时整体换行，而不是把导航挤成横向滚动 */
+    #app-sidebar {
+        flex-wrap: wrap;
+    }
+
+    /* 任务卡网格原最小列宽 350px，窄屏会顶出横向滚动条 */
+    #task-container {
+        grid-template-columns: 1fr;
+    }
+}

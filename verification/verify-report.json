@@ -1,0 +1,335 @@
+{
+  "manifest": {
+    "status": 200,
+    "contentType": "application/manifest+json; charset=utf-8",
+    "name": "我的任务卡",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "icons": [
+      {
+        "src": "assets/icons/icon-192.png",
+        "sizes": "192x192",
+        "natural": "192x192",
+        "ok": true
+      },
+      {
+        "src": "assets/icons/icon-512.png",
+        "sizes": "512x512",
+        "natural": "512x512",
+        "ok": true
+      }
+    ]
+  },
+  "viewports": [
+    {
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "overflowX": 0,
+      "exportBtn": {
+        "w": 92,
+        "h": 44
+      },
+      "dispatchLink": {
+        "w": 92,
+        "h": 44
+      },
+      "cardCount": 7,
+      "cardBtns": [
+        {
+          "t": "接取",
+          "w": 148,
+          "h": 44
+        },
+        {
+          "t": "完成",
+          "w": 148,
+          "h": 44
+        },
+        {
+          "t": "接取",
+          "w": 148,
+          "h": 44
+        },
+        {
+          "t": "完成",
+          "w": 148,
+          "h": 44
+        }
+      ],
+      "nav": [
+        {
+          "t": "看板",
+          "w": 48,
+          "h": 44,
+          "x": 32,
+          "y": 52
+        },
+        {
+          "t": "今日派活",
+          "w": 76,
+          "h": 44,
+          "x": 88,
+          "y": 52
+        },
+        {
+          "t": "历史",
+          "w": 48,
+          "h": 44,
+          "x": 172,
+          "y": 52
+        },
+        {
+          "t": "快照",
+          "w": 48,
+          "h": 44,
+          "x": 228,
+          "y": 52
+        },
+        {
+          "t": "设置",
+          "w": 48,
+          "h": 44,
+          "x": 284,
+          "y": 52
+        }
+      ],
+      "navGap": "8px",
+      "toolbarGap": "15px",
+      "cardBtnGap": "10px",
+      "summary": {
+        "w": 314,
+        "h": 45,
+        "fontSize": "16px"
+      },
+      "bodyPadding": "20px",
+      "sidebarPadding": "10px 12px",
+      "bodyOverflowX": "auto",
+      "h1Font": "32px",
+      "width": 390,
+      "height": 844,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    },
+    {
+      "innerWidth": 640,
+      "scrollWidth": 640,
+      "bodyScrollWidth": 640,
+      "overflowX": 0,
+      "exportBtn": {
+        "w": 92,
+        "h": 44
+      },
+      "dispatchLink": {
+        "w": 92,
+        "h": 44
+      },
+      "cardCount": 7,
+      "cardBtns": [
+        {
+          "t": "接取",
+          "w": 273,
+          "h": 44
+        },
+        {
+          "t": "完成",
+          "w": 273,
+          "h": 44
+        },
+        {
+          "t": "接取",
+          "w": 273,
+          "h": 44
+        },
+        {
+          "t": "完成",
+          "w": 273,
+          "h": 44
+        }
+      ],
+      "nav": [
+        {
+          "t": "看板",
+          "w": 48,
+          "h": 44,
+          "x": 125,
+          "y": 30
+        },
+        {
+          "t": "今日派活",
+          "w": 76,
+          "h": 44,
+          "x": 181,
+          "y": 30
+        },
+        {
+          "t": "历史",
+          "w": 48,
+          "h": 44,
+          "x": 265,
+          "y": 30
+        },
+        {
+          "t": "快照",
+          "w": 48,
+          "h": 44,
+          "x": 321,
+          "y": 30
+        },
+        {
+          "t": "设置",
+          "w": 48,
+          "h": 44,
+          "x": 377,
+          "y": 30
+        }
+      ],
+      "navGap": "8px",
+      "toolbarGap": "15px",
+      "cardBtnGap": "10px",
+      "summary": {
+        "w": 564,
+        "h": 45,
+        "fontSize": "16px"
+      },
+      "bodyPadding": "20px",
+      "sidebarPadding": "10px 12px",
+      "bodyOverflowX": "auto",
+      "h1Font": "32px",
+      "width": 640,
+      "height": 900,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    },
+    {
+      "innerWidth": 1200,
+      "scrollWidth": 1200,
+      "bodyScrollWidth": 1200,
+      "overflowX": 0,
+      "exportBtn": {
+        "w": 92,
+        "h": 35
+      },
+      "dispatchLink": {
+        "w": 92,
+        "h": 35
+      },
+      "cardCount": 7,
+      "cardBtns": [
+        {
+          "t": "接取",
+          "w": 169,
+          "h": 39
+        },
+        {
+          "t": "完成",
+          "w": 169,
+          "h": 39
+        },
+        {
+          "t": "接取",
+          "w": 169,
+          "h": 39
+        },
+        {
+          "t": "完成",
+          "w": 169,
+          "h": 39
+        }
+      ],
+      "nav": [
+        {
+          "t": "看板",
+          "w": 48,
+          "h": 35,
+          "x": 125,
+          "y": 30
+        },
+        {
+          "t": "今日派活",
+          "w": 76,
+          "h": 35,
+          "x": 177,
+          "y": 30
+        },
+        {
+          "t": "历史",
+          "w": 48,
+          "h": 35,
+          "x": 257,
+          "y": 30
+        },
+        {
+          "t": "快照",
+          "w": 48,
+          "h": 35,
+          "x": 309,
+          "y": 30
+        },
+        {
+          "t": "设置",
+          "w": 48,
+          "h": 35,
+          "x": 361,
+          "y": 30
+        }
+      ],
+      "navGap": "4px",
+      "toolbarGap": "15px",
+      "cardBtnGap": "10px",
+      "summary": {
+        "w": 308,
+        "h": 21,
+        "fontSize": "16px"
+      },
+      "bodyPadding": "20px",
+      "sidebarPadding": "10px 12px",
+      "bodyOverflowX": "auto",
+      "h1Font": "32px",
+      "width": 1200,
+      "height": 900,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    }
+  ],
+  "desktop": {
+    "bodyPadding": "20px 20px 20px 200px",
+    "bodyPaddingLeft": "200px",
+    "bodyPaddingBottom": "20px",
+    "bodyPaddingRight": "20px",
+    "sidebarPadding": "18px 14px",
+    "sidebarPosition": "fixed",
+    "sidebarHeight": 900,
+    "viewportH": 900
+  },
+  "icons": [
+    {
+      "n": "icon-192",
+      "natural": "192x192"
+    },
+    {
+      "n": "icon-512",
+      "natural": "512x512"
+    },
+    {
+      "n": "apple-touch-icon",
+      "natural": "180x180"
+    }
+  ],
+  "failedRequests": [
+    "http://127.0.0.1:8320/api/today -> 404",
+    "http://127.0.0.1:8320/api/events -> 404"
+  ]
+}
