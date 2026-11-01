@@ -9,3 +9,6 @@ dispatch-data.history/
 
 # 测试专用临时目录
 server/test/.tmp/
+
+# 验收截图与报告：每次跑 verify 都会重新生成，不入库
+verification/
