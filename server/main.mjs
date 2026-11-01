@@ -35,6 +35,7 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
 };
 
 // 精确白名单：URL → 相对项目根的文件。today.html 与 js/dispatch/* 在场3 创建前会 404
@@ -49,9 +50,16 @@ const STATIC_ROUTES = new Map([
   ['/js/render.js', 'js/render.js'],
   ['/js/router.js', 'js/router.js'],
   ['/js/timer.js', 'js/timer.js'],
+  // 10/30 加云同步时漏登记，导致本地 8317 上 app.js 的 import 整链失败（看板空白）。
+  ['/js/cloud.js', 'js/cloud.js'],
+  ['/js/vendor/workbuddy-cloud.global.js', 'js/vendor/workbuddy-cloud.global.js'],
   ['/js/dispatch/api.js', 'js/dispatch/api.js'],
   ['/js/dispatch/client-store.js', 'js/dispatch/client-store.js'],
   ['/js/dispatch/workbench.js', 'js/dispatch/workbench.js'],
+  ['/manifest.webmanifest', 'manifest.webmanifest'],
+  ['/assets/icons/icon-192.png', 'assets/icons/icon-192.png'],
+  ['/assets/icons/icon-512.png', 'assets/icons/icon-512.png'],
+  ['/assets/icons/apple-touch-icon.png', 'assets/icons/apple-touch-icon.png'],
 ]);
 
 const ALLOWED_HOSTS = new Set([`${HOST}:${PORT}`, `localhost:${PORT}`]);
